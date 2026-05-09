@@ -129,8 +129,8 @@ export const extractProjectBrief = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_FLASH);
 
@@ -264,8 +264,8 @@ export const runDeeperResearch = createServerFn({ method: "POST" })
     const brief = (project as { extracted_brief?: ExtractedBrief | null }).extracted_brief;
     const keyQuestions = brief?.key_questions?.join("\n- ") ?? "(unspecified)";
 
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_PRO);
 
@@ -311,8 +311,8 @@ export const generateOutline = createServerFn({ method: "POST" })
     let outline: OutlineSection[];
     if (dt === "custom") {
       // Ask AI to generate sections from the brief
-      const apiKey = process.env.LOVABLE_API_KEY;
-      if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) throw new Error("GEMINI_API_KEY missing");
       const gateway = createLovableAiGatewayProvider(apiKey);
       const model = gateway(MODEL_FLASH);
       const { experimental_output } = await generateText({
@@ -442,8 +442,8 @@ export const draftSection = createServerFn({ method: "POST" })
         actionInstruction = "Draft this section from scratch using the prompt and project context.";
     }
 
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_PRO);
 

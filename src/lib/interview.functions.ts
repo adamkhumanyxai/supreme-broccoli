@@ -234,8 +234,8 @@ export const interviewTurn = createServerFn({ method: "POST" })
       });
     }
 
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_ID);
 
@@ -444,8 +444,8 @@ Score on the dimensions below, each 1-5 with brief evidence-based reasoning citi
 
 Respond as strict JSON matching the requested schema. strengths and gaps must each have exactly 3 items. follow_up_questions must have exactly 5 items.`;
 
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_ID);
 

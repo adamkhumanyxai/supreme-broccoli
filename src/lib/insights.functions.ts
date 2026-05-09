@@ -72,8 +72,8 @@ export const generateInsights = createServerFn({ method: "POST" })
       .maybeSingle();
     const nextVersion = (prevMax?.version ?? 0) + 1;
 
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_ID);
 
@@ -106,7 +106,7 @@ Be specific, not generic. The "likely_themes" section MUST reference the specifi
     let dossier: Dossier | null = null;
     let errorMsg: string | null = null;
     try {
-      // Enable Gemini Google Search grounding via providerOptions, forwarded by the Lovable AI Gateway.
+      // Enable Gemini Google Search grounding via providerOptions (native Google provider).
       const { experimental_output } = await generateText({
         model,
         experimental_output: Output.object({ schema: DossierSchema }),
