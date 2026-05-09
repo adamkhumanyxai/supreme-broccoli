@@ -375,6 +375,7 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
     requesting_permission: "Asking for mic permission…",
     connecting: "Connecting…",
     listening: "Listening",
+    processing: "Thinking…",
     speaking: voice.transcript.length === 0 ? "Joining…" : `${persona.title} is speaking`,
     ended: "Ended",
     error: "Error",
@@ -461,7 +462,7 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
           <Button
             variant={voice.isMuted ? "default" : "outline"}
             onClick={voice.toggleMute}
-            disabled={voice.state !== "listening" && voice.state !== "speaking"}
+            disabled={voice.state !== "listening" && voice.state !== "speaking" && voice.state !== "processing"}
           >
             {voice.isMuted ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
             {voice.isMuted ? "Unmute" : "Mute"}

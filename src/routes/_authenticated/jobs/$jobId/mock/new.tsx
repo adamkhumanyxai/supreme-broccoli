@@ -54,7 +54,7 @@ function MockNew() {
       supabase.auth.getSession().then(({ data: { session } }) => {
         const jwt = session?.access_token;
         if (!jwt) return;
-        fetch("/api/voice-token", {
+        fetch("/api/interview-turn", {
           method: "POST",
           headers: { Authorization: `Bearer ${jwt}` },
         })
@@ -208,7 +208,7 @@ function MockNew() {
                     ? "Your browser doesn't support WebRTC. Use Chrome, Edge, or Firefox."
                     : voiceAvailable === null
                     ? "Checking availability…"
-                    : "Real-time voice via OpenAI Realtime. Requires mic permission. You can interrupt the interviewer mid-sentence."}
+                    : "AI voice with Australian accent via ElevenLabs. Speak naturally — the interviewer listens and responds."}
                 </p>
               </div>
             </div>
