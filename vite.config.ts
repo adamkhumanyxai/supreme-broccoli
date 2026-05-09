@@ -16,7 +16,16 @@ export default defineConfig({
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart({ server: { entry: "server" } }),
-    nitro(),
+    nitro({
+      // Nitro v3 bundles ALL production deps by default. `traceDeps` keeps these
+      // as external runtime imports instead of bundling. Required because:
+      //  - @google/genai is browser-only (used only in src/hooks/use-voice-interview.ts)
+      //  - It pulls in `ws`, which references Node's built-in `https` module
+      //  - The bundler tries to resolve `https` as an npm package and fails
+      // Marking them traced means the server never bundles them; runtime never
+      // tries to load them either, since the dynamic import only fires in the browser.
+      traceDeps: ["@google/genai", "ws"],
+    }),
     viteReact(),
   ],
 });
