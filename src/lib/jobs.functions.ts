@@ -86,15 +86,16 @@ export const extractJob = createServerFn({ method: "POST" })
 
     const jsonShape = `{"company_name":"string|null","company_website":"string|null","role_title":"string|null","description":"string|null","requirements":["string"],"responsibilities":["string"],"location":"string|null","comp_band":"string|null","source_url":"string|null"}`;
 
+    const jobContent = text;
     let rawText: string;
     try {
-      const { text } = await generateText({
+      const aiResult = await generateText({
         model,
         system:
           `You are a job description parser. Extract clean structured data. If a field can't be determined, return null. Clean boilerplate from descriptions. Return arrays even if empty.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${jsonShape}`,
-        prompt: `Parse this job posting. ${sourceUrl ? `Source URL: ${sourceUrl}\n\n` : ""}Content:\n\n${text}`,
+        prompt: `Parse this job posting. ${sourceUrl ? `Source URL: ${sourceUrl}\n\n` : ""}Content:\n\n${jobContent}`,
       });
-      rawText = text;
+      rawText = aiResult.text;
     } catch (e) {
       console.error("[extractJob] generateText threw:", e);
       throw e;
