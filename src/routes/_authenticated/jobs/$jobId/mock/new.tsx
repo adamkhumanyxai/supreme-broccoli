@@ -46,21 +46,20 @@ function MockNew() {
   useEffect(() => {
     const supported =
       typeof window !== "undefined" &&
-      typeof AudioWorkletNode !== "undefined" &&
+      typeof RTCPeerConnection !== "undefined" &&
       !!navigator.mediaDevices?.getUserMedia;
     setVoiceSupported(supported);
     if (!supported) return;
-    // Fire-and-forget probe via supabase session
     import("@/integrations/supabase/client").then(({ supabase }) => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         const jwt = session?.access_token;
         if (!jwt) return;
-        fetch("/api/gemini-token", {
+        fetch("/api/voice-token", {
           method: "POST",
           headers: { Authorization: `Bearer ${jwt}` },
         })
           .then((r) => r.json())
-          .then((d) => {
+          .then((d: { voice_available: boolean }) => {
             const available = !!d.voice_available;
             setVoiceAvailable(available);
             if (available) setVoiceMode(true);
@@ -103,7 +102,6 @@ function MockNew() {
           target_duration_minutes: duration,
         },
       });
-      // Set mode based on toggle (start defaults to text)
       if (voiceMode && voiceSupported && voiceAvailable) {
         await setMode({ data: { session_id, mode: "voice" } }).catch(() => undefined);
       }
@@ -207,10 +205,10 @@ function MockNew() {
                 <p className="font-medium text-foreground">Voice mode</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {!voiceSupported
-                    ? "Your browser doesn't support AudioWorklet. Use Chrome, Edge, or Firefox."
+                    ? "Your browser doesn't support WebRTC. Use Chrome, Edge, or Firefox."
                     : voiceAvailable === null
                     ? "Checking availability…"
-                    : "Real-time voice via Gemini Live. Requires mic permission. You can interrupt the interviewer mid-sentence."}
+                    : "Real-time voice via OpenAI Realtime. Requires mic permission. You can interrupt the interviewer mid-sentence."}
                 </p>
               </div>
             </div>

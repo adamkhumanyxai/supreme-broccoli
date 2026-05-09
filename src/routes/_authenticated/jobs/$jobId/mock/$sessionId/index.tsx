@@ -57,7 +57,6 @@ function LiveInterview() {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
 
-  // If session already completed, jump to debrief
   if (data.session.status === "completed") {
     navigate({
       to: "/jobs/$jobId/mock/$sessionId/debrief",
@@ -75,7 +74,7 @@ function LiveInterview() {
 }
 
 // =====================================================================================
-// Text mode — original chat UI
+// Text mode
 // =====================================================================================
 
 type SharedProps = {
@@ -118,7 +117,6 @@ function TextLiveInterview({ jobId, sessionId, session, job, company }: SharedPr
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [transcript, thinking]);
 
-  // Auto-fire opening turn if transcript empty
   useEffect(() => {
     if (openingFired) return;
     if (transcript.length === 0 && session.status === "in_progress") {
@@ -138,11 +136,7 @@ function TextLiveInterview({ jobId, sessionId, session, job, company }: SharedPr
     const msg = input.trim();
     if (!msg || thinking) return;
     setInput("");
-    const optimistic: Turn = {
-      role: "candidate",
-      content: msg,
-      timestamp: new Date().toISOString(),
-    };
+    const optimistic: Turn = { role: "candidate", content: msg, timestamp: new Date().toISOString() };
     setTranscript((t) => [...t, optimistic]);
     setThinking(true);
     try {
@@ -283,7 +277,7 @@ function TextLiveInterview({ jobId, sessionId, session, job, company }: SharedPr
 }
 
 // =====================================================================================
-// Voice mode — Gemini Live
+// Voice mode — OpenAI Realtime via WebRTC
 // =====================================================================================
 
 function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedProps) {
@@ -304,15 +298,18 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
   }, [sessionId, buildPrompt]);
 
   const persona = (session.persona ?? { title: "Interviewer", seniority: "", style: "" }) as Persona;
-  const voiceName = persona.seniority?.toLowerCase().includes("senior") || persona.seniority?.toLowerCase().includes("vp") || persona.seniority?.toLowerCase().includes("executive") ? "Charon" : "Aoede";
+
+  // Map persona seniority to an OpenAI Realtime voice
+  const seniority = persona.seniority?.toLowerCase() ?? "";
+  const voiceName = (seniority.includes("senior") || seniority.includes("vp") || seniority.includes("executive") || seniority.includes("director"))
+    ? "echo"
+    : "alloy";
 
   const voice = useVoiceInterview({
     systemInstruction: systemPrompt ?? "",
     voiceName,
   });
 
-  // Auto-start when prompt is loaded — destructure to avoid re-running on every render
-  // (voice is a new object reference each render; only the specific fields we need are stable enough)
   const { state: voiceState, start: voiceStart } = voice;
   const [autoStarted, setAutoStarted] = useState(false);
   useEffect(() => {
@@ -322,7 +319,6 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
     }
   }, [systemPrompt, autoStarted, voiceState, voiceStart]);
 
-  // Elapsed timer
   useEffect(() => {
     if (!session.started_at) return;
     const start = new Date(session.started_at).getTime();
@@ -335,7 +331,6 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
     try {
       const { audioBlob, transcript: voiceTranscript } = await voice.end();
 
-      // Upload audio to storage
       let audioPath: string | null = null;
       if (audioBlob) {
         const { data: { user } } = await supabase.auth.getUser();
@@ -349,11 +344,7 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
       }
 
       await finalize({
-        data: {
-          session_id: sessionId,
-          audio_storage_path: audioPath,
-          transcript: voiceTranscript,
-        },
+        data: { session_id: sessionId, audio_storage_path: audioPath, transcript: voiceTranscript },
       });
       debrief({ data: { session_id: sessionId } }).catch(() => undefined);
       navigate({ to: "/jobs/$jobId/mock/$sessionId/debrief", params: { jobId, sessionId } });
@@ -372,9 +363,6 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
       <div className="mx-auto max-w-2xl pt-12 text-center">
         <h2 className="font-serif text-2xl text-foreground">Voice mode unavailable</h2>
         <p className="mt-3 text-sm text-muted-foreground">{voice.error}</p>
-        <p className="mt-6 text-sm text-muted-foreground">
-          You can still run this as a text-mode mock. Switch the session mode in your DB or start a new one.
-        </p>
         <Button className="mt-6" onClick={() => navigate({ to: "/jobs/$jobId/mock/new", params: { jobId } })}>
           Start a new mock
         </Button>
@@ -385,7 +373,7 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
   const stateLabel: Record<string, string> = {
     idle: "Ready",
     requesting_permission: "Asking for mic permission…",
-    connecting: "Connecting to Gemini Live…",
+    connecting: "Connecting…",
     listening: "Listening",
     speaking: voice.transcript.length === 0 ? "Joining…" : `${persona.title} is speaking`,
     ended: "Ended",
@@ -424,7 +412,6 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
         </div>
       </div>
 
-      {/* Big stage with transcript */}
       <div className="flex flex-1 flex-col items-center justify-center gap-8 py-8">
         <div className="text-center">
           <div
@@ -434,7 +421,6 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
           >
             {initials(persona.title)}
           </div>
-          {/* Audio level meter */}
           <div className="mx-auto mt-6 h-1.5 w-48 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full bg-primary transition-[width] duration-75"
@@ -443,14 +429,11 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
           </div>
         </div>
 
-        {/* Live transcript */}
         <div className="w-full max-w-2xl flex-1 space-y-3 overflow-y-auto px-4">
           {voice.transcript.length === 0 && (
             <p className="text-center text-sm text-muted-foreground">
-              {voice.state === "connecting"
+              {voice.state === "connecting" || voice.state === "requesting_permission"
                 ? "Connecting…"
-                : voice.state === "requesting_permission"
-                ? "Allow mic access to begin."
                 : "Speak when you're ready. Interrupt anytime."}
             </p>
           )}
@@ -473,7 +456,6 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
         </div>
       </div>
 
-      {/* Controls */}
       <div className="border-t border-border pt-4">
         <div className="mx-auto flex max-w-2xl items-center justify-center gap-3">
           <Button
