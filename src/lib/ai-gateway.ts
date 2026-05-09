@@ -1,30 +1,46 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
 /**
- * Direct Google Gemini provider. Uses GEMINI_API_KEY for auth.
+ * AI provider — routes through OpenRouter (https://openrouter.ai).
  *
- * Previously this routed through the Lovable AI Gateway (`ai.gateway.lovable.dev`)
- * for unified billing through Lovable Cloud. That gateway requires a `LOVABLE_API_KEY`
- * which is only auto-injected inside Lovable Cloud and isn't available for external
- * deployment (Vercel, etc.). Switched to the native Google provider so the same
- * `GEMINI_API_KEY` powers BOTH text-mode (this file) AND voice-mode (Gemini Live).
+ * Why OpenRouter:
+ *  - One API key, many models (Claude, GPT-4o, Gemini, Llama, Mistral, etc.)
+ *  - Different models can act as different interviewer personas — genuine
+ *    diversity of conversational style and analytical angle, not just prompts.
+ *  - Single-vendor billing, easier quota management.
+ *  - Switching the default model is an env-var change, no redeploy required
+ *    if Vercel reads env vars dynamically (they do at runtime).
  *
- * Bonus: `providerOptions: { google: { useSearchGrounding: true } }` now actually
- * propagates correctly (the Lovable Gateway likely silently dropped it).
+ * Voice mode (Gemini Live) is NOT routed through OpenRouter — the Live API
+ * uses a unique WebSocket protocol Google offers exclusively. Voice continues
+ * to use GEMINI_API_KEY directly via @google/genai (in src/hooks/use-voice-interview.ts).
  *
  * Usage at call sites:
- *   const provider = createAiProvider(process.env.GEMINI_API_KEY);
- *   const model = provider("gemini-2.5-pro"); // or "gemini-2.5-flash"
+ *   const provider = createAiProvider(process.env.OPENROUTER_API_KEY);
+ *   const model = provider("anthropic/claude-sonnet-4.5"); // or any OpenRouter model id
  */
-export const createAiProvider = (apiKey: string) => {
-  const provider = createGoogleGenerativeAI({ apiKey });
-  return (modelId: string) => {
-    // Strip legacy "google/" prefix if any caller still passes it.
-    const id = modelId.startsWith("google/") ? modelId.slice("google/".length) : modelId;
-    return provider(id);
-  };
-};
 
-// Backward-compatible alias — keeps the old import name working at call sites
-// while the rename phases in. Same factory shape, clearer name.
+export const DEFAULT_MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.5";
+
+// Faster/cheaper model for trivial tasks like job-description parsing.
+// Override via OPENROUTER_MODEL_FAST env var.
+export const FAST_MODEL = process.env.OPENROUTER_MODEL_FAST ?? "anthropic/claude-haiku-4.5";
+
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+
+export const createAiProvider = (apiKey: string) =>
+  createOpenAICompatible({
+    name: "openrouter",
+    baseURL: OPENROUTER_BASE_URL,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      // OpenRouter recommends these for analytics / leaderboard attribution.
+      // Adjust the referer to your real Vercel URL once you have a custom domain.
+      "HTTP-Referer": "https://supreme-broccoli.vercel.app",
+      "X-Title": "Interview Compass",
+    },
+  });
+
+// Backward-compat alias — keeps the old import name working at call sites.
+// New code should use `createAiProvider`.
 export const createLovableAiGatewayProvider = createAiProvider;

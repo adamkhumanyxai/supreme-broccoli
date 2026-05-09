@@ -32,7 +32,7 @@ const DossierSchema = z.object({
 
 export type Dossier = z.infer<typeof DossierSchema>;
 
-const MODEL_ID = "google/gemini-2.5-pro";
+const MODEL_ID = "anthropic/claude-sonnet-4.5";
 
 function bullets(arr: string[] | null | undefined): string {
   if (!arr || arr.length === 0) return "(none provided)";
@@ -72,8 +72,8 @@ export const generateInsights = createServerFn({ method: "POST" })
       .maybeSingle();
     const nextVersion = (prevMax?.version ?? 0) + 1;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_ID);
 
@@ -82,7 +82,7 @@ export const generateInsights = createServerFn({ method: "POST" })
 
     const system = `You are a senior career coach producing a strategic intelligence dossier on a specific company for a specific candidate. Your job is to give them an unfair advantage in an interview.
 
-USE WEB SEARCH to find current public information about the company. Cite specific facts (numbers, dates, names) only when grounded — say "publicly available info is limited on X" if grounding returns nothing relevant. Prefer events from the last 6 months for "Recent Moves".
+Draw on what you know about the company, its market, and the role. Cite specific facts (numbers, dates, names) when you're confident — be explicit about uncertainty otherwise ("publicly available info is limited on X"). Recent Moves should reference recent events you have knowledge of, even if you can't pin exact dates.
 
 CANDIDATE
 Name: ${profile?.full_name ?? "(not provided)"}
@@ -106,16 +106,12 @@ Be specific, not generic. The "likely_themes" section MUST reference the specifi
     let dossier: Dossier | null = null;
     let errorMsg: string | null = null;
     try {
-      // Enable Gemini Google Search grounding via providerOptions (native Google provider).
       const { experimental_output } = await generateText({
         model,
         experimental_output: Output.object({ schema: DossierSchema }),
         system,
         prompt:
-          "Produce the dossier now. Each field should be 4-12 sentences (or a strong bulleted list) of substantive, specific content. Recent Moves should cite at least 3 dated events from the last 6 months when available.",
-        providerOptions: {
-          google: { useSearchGrounding: true },
-        },
+          "Produce the dossier now. Each field should be 4-12 sentences (or a strong bulleted list) of substantive, specific content.",
       });
       dossier = experimental_output;
     } catch (e) {

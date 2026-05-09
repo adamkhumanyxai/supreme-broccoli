@@ -62,7 +62,7 @@ export const SCORE_DIMENSIONS: { key: keyof Debrief["scores"]; label: string }[]
   { key: "authenticity", label: "Authenticity" },
 ];
 
-const MODEL_ID = "google/gemini-2.5-pro";
+const MODEL_ID = "anthropic/claude-sonnet-4.5";
 
 function bullets(arr: string[] | null | undefined): string {
   if (!arr || arr.length === 0) return "(none provided)";
@@ -234,8 +234,8 @@ export const interviewTurn = createServerFn({ method: "POST" })
       });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_ID);
 
@@ -444,8 +444,8 @@ Score on the dimensions below, each 1-5 with brief evidence-based reasoning citi
 
 Respond as strict JSON matching the requested schema. strengths and gaps must each have exactly 3 items. follow_up_questions must have exactly 5 items.`;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_ID);
 

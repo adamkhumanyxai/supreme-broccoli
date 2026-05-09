@@ -78,10 +78,10 @@ export const extractJob = createServerFn({ method: "POST" })
       }
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
-    const model = gateway("google/gemini-2.5-flash");
+    const model = gateway("anthropic/claude-haiku-4.5");
 
     const { experimental_output: parsed } = await generateText({
       model,

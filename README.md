@@ -11,7 +11,8 @@ Built on TanStack Start (React 19) + Supabase + Google Gemini via the Lovable AI
 - **Frontend**: React 19, TanStack Router (file-based), TanStack Query, shadcn/ui, Tailwind v4
 - **Backend**: TanStack Start server functions (no separate API server)
 - **Database / Auth / Storage**: Supabase (Postgres + Storage with RLS)
-- **AI (text + voice)**: Direct Google Gemini — Vercel AI SDK + `@ai-sdk/google` for text (Gemini 2.5 Pro / Flash with web grounding) and `@google/genai` for voice (Gemini Live). One `GEMINI_API_KEY` powers everything.
+- **AI (text)**: OpenRouter via Vercel AI SDK + `@ai-sdk/openai-compatible`. Default model is `anthropic/claude-sonnet-4.5`, configurable per-deploy via `OPENROUTER_MODEL`. Same key works across Claude, GPT-4o, Gemini, Llama, Mistral, Perplexity Sonar, etc. — change models without code changes.
+- **AI (voice)**: `@google/genai` for Gemini Live (real-time speech-to-speech). Voice is the one feature OpenRouter can't proxy — it requires a unique WebSocket protocol Google offers exclusively. Voice mode silently falls back to text mode if `GEMINI_API_KEY` is not set.
 - **Exports**: `pptxgenjs`, `docx`, browser print-to-PDF
 
 ---
@@ -36,9 +37,12 @@ App runs at `http://localhost:5173` by default.
 | `VITE_SUPABASE_PROJECT_ID` | Supabase project ref | `.env` |
 | `SUPABASE_URL` | Same URL, server-side | `.env` |
 | `SUPABASE_PUBLISHABLE_KEY` | Same anon key, server-side | `.env` |
-| `GEMINI_API_KEY` | Google Gemini key — powers text-mode AI calls AND voice mode | `.env` |
+| `OPENROUTER_API_KEY` | OpenRouter key — powers all text-mode AI calls | `.env` |
+| `OPENROUTER_MODEL` | (optional) default model id, e.g. `anthropic/claude-sonnet-4.5` | `.env` |
+| `OPENROUTER_MODEL_FAST` | (optional) cheap model for parsing tasks, e.g. `anthropic/claude-haiku-4.5` | `.env` |
+| `GEMINI_API_KEY` | (optional) Google Gemini key — only needed for voice-mode mock interviewer | `.env` |
 
-Without `GEMINI_API_KEY`, AI-dependent flows error and voice mode silently falls back to text mode (designed safety net).
+Without `OPENROUTER_API_KEY`, AI flows error. Without `GEMINI_API_KEY`, voice mode silently falls back to text mode (designed safety net).
 
 ---
 

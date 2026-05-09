@@ -56,8 +56,8 @@ export type OutlineSection = {
   content: string; // markdown
 };
 
-const MODEL_PRO = "google/gemini-2.5-pro";
-const MODEL_FLASH = "google/gemini-2.5-flash";
+const MODEL_PRO = "anthropic/claude-sonnet-4.5";
+const MODEL_FLASH = "anthropic/claude-haiku-4.5";
 
 const TEMPLATES: Record<DeliverableType, { title: string; prompt: string }[]> = {
   "30_60_90": [
@@ -129,8 +129,8 @@ export const extractProjectBrief = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_FLASH);
 
@@ -264,19 +264,18 @@ export const runDeeperResearch = createServerFn({ method: "POST" })
     const brief = (project as { extracted_brief?: ExtractedBrief | null }).extracted_brief;
     const keyQuestions = brief?.key_questions?.join("\n- ") ?? "(unspecified)";
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_PRO);
 
-    const system = `You are a research analyst. The candidate has a take-home assignment from ${company?.name ?? "the company"}: produce a ${DELIVERABLE_LABELS[(project.deliverable_type ?? "custom") as DeliverableType]} addressing these key questions:\n- ${keyQuestions}\n\nUSE WEB SEARCH aggressively. Find SPECIFIC facts, numbers, customer names, market data, technical details that would make their deliverable substantively impressive — not generic. Be honest when public info is limited.`;
+    const system = `You are a research analyst. The candidate has a take-home assignment from ${company?.name ?? "the company"}: produce a ${DELIVERABLE_LABELS[(project.deliverable_type ?? "custom") as DeliverableType]} addressing these key questions:\n- ${keyQuestions}\n\nDraw on what you know about the company, the market, and the deliverable type. Be specific where you can; be honest about what you don't know rather than inventing facts. Cite specific market data, customer types, or technical details when you have them.`;
 
     const { experimental_output } = await generateText({
       model,
       experimental_output: Output.object({ schema: ResearchSchema }),
       system,
       prompt: "Produce the structured research findings now. Aim for 5-8 substantive findings.",
-      providerOptions: { google: { useSearchGrounding: true } },
     });
 
     await supabase
@@ -311,8 +310,8 @@ export const generateOutline = createServerFn({ method: "POST" })
     let outline: OutlineSection[];
     if (dt === "custom") {
       // Ask AI to generate sections from the brief
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
       const gateway = createLovableAiGatewayProvider(apiKey);
       const model = gateway(MODEL_FLASH);
       const { experimental_output } = await generateText({
@@ -442,8 +441,8 @@ export const draftSection = createServerFn({ method: "POST" })
         actionInstruction = "Draft this section from scratch using the prompt and project context.";
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_PRO);
 

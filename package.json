@@ -12,7 +12,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@ai-sdk/google": "^2.0.17",
+    "@ai-sdk/openai-compatible": "^2.0.47",
     "@google/genai": "^1.27.0",
     "docx": "^9.5.1",
     "pptxgenjs": "^4.0.1",
