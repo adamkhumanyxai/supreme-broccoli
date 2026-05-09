@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-// @google/genai Live API. Type imports may need adjustment if SDK API surface evolves.
+// Types only — these compile away at build time so they don't pull @google/genai
+// into the server bundle. The runtime values (GoogleGenAI, Modality) are imported
+// dynamically inside `start()` so the SDK only loads in the browser.
+//
+// Why dynamic? @google/genai depends on `ws` which references Node's built-in
+// `https`. Nitro's server bundler tries to resolve `https` as an npm package
+// and chokes. Dynamic import keeps the SDK out of the SSR bundle entirely.
+//
 // Reference: https://ai.google.dev/api/live (Gemini Live)
-import { GoogleGenAI, Modality, type Session, type LiveServerMessage } from "@google/genai";
+import type { Session, LiveServerMessage } from "@google/genai";
 import { supabase } from "@/integrations/supabase/client";
 
 export type VoiceState =
@@ -215,8 +222,10 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
     }
 
     // 3. Connect via @google/genai Live API using the ephemeral token
+    // Dynamic import keeps the SDK (and its `ws` transitive dep) out of the SSR bundle.
     let session: Session;
     try {
+      const { GoogleGenAI, Modality } = await import("@google/genai");
       const ai = new GoogleGenAI({
         apiKey: tokenName,
         httpOptions: { apiVersion: "v1alpha" },
