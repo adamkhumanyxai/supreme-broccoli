@@ -11,6 +11,7 @@ import {
   Compass,
   Target,
   MessageCircleQuestion,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ const ICONS: Record<string, LucideIcon> = {
   Compass,
   Target,
   MessageCircleQuestion,
+  Star,
 };
 
 export function DossierSection({

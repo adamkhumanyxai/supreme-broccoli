@@ -7,6 +7,7 @@ import { generateInsights, DOSSIER_SECTIONS, type Dossier } from "@/lib/insights
 import { CompanyAvatar } from "@/components/jobs/CompanyAvatar";
 import { StatusPill, JOB_STATUSES, type JobStatus } from "@/components/jobs/StatusPill";
 import { DossierSection } from "@/components/jobs/DossierSection";
+import { EmployerScoreCard } from "@/components/jobs/EmployerScoreCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -215,15 +216,23 @@ function JobDetail() {
             ))}
 
           {dossier &&
-            DOSSIER_SECTIONS.map((s) => (
-              <DossierSection
-                key={s.key}
-                id={s.key}
-                title={s.title}
-                icon={s.icon}
-                content={dossier[s.key as keyof Dossier] ?? ""}
-              />
-            ))}
+            DOSSIER_SECTIONS.map((s) => {
+              if (s.key === "employer_brand") {
+                return dossier.employer_brand ? (
+                  <EmployerScoreCard key="employer_brand" id="employer_brand" brand={dossier.employer_brand} />
+                ) : null;
+              }
+              const content = dossier[s.key as keyof Omit<Dossier, "employer_brand">] as string | undefined;
+              return (
+                <DossierSection
+                  key={s.key}
+                  id={s.key}
+                  title={s.title}
+                  icon={s.icon}
+                  content={content ?? ""}
+                />
+              );
+            })}
 
           {insight && (
             <div className="flex flex-wrap items-center justify-between gap-2 pt-4 text-xs text-muted-foreground">
@@ -250,12 +259,34 @@ function JobDetail() {
   );
 }
 
+function employerBrandToMarkdown(eb: Dossier["employer_brand"]): string {
+  if (!eb) return "_Employer score not available._";
+  const flags = eb.red_flags.length > 0 ? `\n**Watch out for:**\n${eb.red_flags.map((f) => `- ${f}`).join("\n")}` : "";
+  return [
+    `**Score: ${eb.score.toFixed(1)}/10** — ${eb.score_rationale}`,
+    "",
+    `**What employees love:**\n${eb.pros.map((p) => `- ${p}`).join("\n")}`,
+    "",
+    `**Common complaints:**\n${eb.cons.map((c) => `- ${c}`).join("\n")}`,
+    "",
+    `**Comp:** ${eb.compensation_verdict}  |  **Equity:** ${eb.equity}  |  **Remote:** ${eb.remote_policy}`,
+    "",
+    `**Perks:** ${eb.perks.join(", ")}`,
+    flags,
+    "",
+    `_${eb.verdict}_`,
+  ].join("\n");
+}
+
 function downloadMarkdown(title: string, companyName: string | null | undefined, dossier: Dossier) {
-  const md =
-    `# ${title}\n_${companyName ?? "Company"}_\n\n` +
-    DOSSIER_SECTIONS.map(
-      (s) => `## ${s.title}\n\n${dossier[s.key as keyof Dossier] ?? ""}\n`,
-    ).join("\n");
+  const sections = DOSSIER_SECTIONS.map((s) => {
+    if (s.key === "employer_brand") {
+      return `## ${s.title}\n\n${employerBrandToMarkdown(dossier.employer_brand)}\n`;
+    }
+    const content = dossier[s.key as keyof Omit<Dossier, "employer_brand">] as string | undefined;
+    return `## ${s.title}\n\n${content ?? ""}\n`;
+  });
+  const md = `# ${title}\n_${companyName ?? "Company"}_\n\n` + sections.join("\n");
   const blob = new Blob([md], { type: "text/markdown" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
