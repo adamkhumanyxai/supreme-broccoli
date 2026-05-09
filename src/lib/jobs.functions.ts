@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider, FAST_MODEL } from "@/lib/ai-gateway";
+import { createLovableAiGatewayProvider, FAST_MODEL, extractJsonText } from "@/lib/ai-gateway";
 
 const URL_RE = /^https?:\/\/\S+$/i;
 
@@ -79,17 +79,30 @@ export const extractJob = createServerFn({ method: "POST" })
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
+    console.log("[extractJob] apiKey present:", !!apiKey, "len:", apiKey?.length, "model:", FAST_MODEL);
     if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(FAST_MODEL);
 
-    const { experimental_output: parsed } = await generateText({
-      model,
-      experimental_output: Output.object({ schema: ParsedJobSchema }),
-      system:
-        "You are a job description parser. Extract clean structured data. If a field can't be determined, return null. Clean boilerplate from descriptions. Return arrays even if empty.",
-      prompt: `Parse this job posting. ${sourceUrl ? `Source URL: ${sourceUrl}\n\n` : ""}Content:\n\n${text}`,
-    });
+    const jsonShape = `{"company_name":"string|null","company_website":"string|null","role_title":"string|null","description":"string|null","requirements":["string"],"responsibilities":["string"],"location":"string|null","comp_band":"string|null","source_url":"string|null"}`;
+
+    let rawText: string;
+    try {
+      const { text } = await generateText({
+        model,
+        system:
+          `You are a job description parser. Extract clean structured data. If a field can't be determined, return null. Clean boilerplate from descriptions. Return arrays even if empty.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${jsonShape}`,
+        prompt: `Parse this job posting. ${sourceUrl ? `Source URL: ${sourceUrl}\n\n` : ""}Content:\n\n${text}`,
+      });
+      rawText = text;
+    } catch (e) {
+      console.error("[extractJob] generateText threw:", e);
+      throw e;
+    }
+
+    console.log("[extractJob] raw response (first 300):", rawText.slice(0, 300));
+    const parsed = ParsedJobSchema.parse(JSON.parse(extractJsonText(rawText)));
+    console.log("[extractJob] parsed ok, company:", parsed.company_name, "role:", parsed.role_title);
 
     return { parsed: { ...parsed, source_url: parsed.source_url ?? sourceUrl } };
   });

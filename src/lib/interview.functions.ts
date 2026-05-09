@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider, DEFAULT_MODEL } from "@/lib/ai-gateway";
+import { createLovableAiGatewayProvider, DEFAULT_MODEL, extractJsonText } from "@/lib/ai-gateway";
 
 const PersonaSchema = z.object({
   title: z.string(),
@@ -449,19 +449,22 @@ Respond as strict JSON matching the requested schema. strengths and gaps must ea
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_ID);
 
-    const { experimental_output } = await generateText({
+    const scoreField = `{"score":number,"evidence":"string"}`;
+    const debriefJsonShape = `{"overall_score":number,"headline":"string","scores":{"clarity_communication":${scoreField},"depth_substance":${scoreField},"structure":${scoreField},"role_fit":${scoreField},"domain_mastery":${scoreField},"strategic_thinking":${scoreField},"authenticity":${scoreField}},"strengths":[{"title":"string","detail":"string"}],"gaps":[{"title":"string","detail":"string"}],"follow_up_questions":["string"],"rerun_suggestion":"string"}`;
+
+    const { text: debriefText } = await generateText({
       model,
-      experimental_output: Output.object({ schema: DebriefSchema }),
-      system,
+      system: `${system}\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure (scores are numbers 1-5, strengths/gaps must have exactly 3 items, follow_up_questions must have exactly 5 items):\n${debriefJsonShape}`,
       prompt: "Produce the debrief now.",
     });
+    const debrief = DebriefSchema.parse(JSON.parse(extractJsonText(debriefText)));
 
     await supabase
       .from("interview_sessions")
-      .update({ debrief: experimental_output as unknown as never })
+      .update({ debrief: debrief as unknown as never })
       .eq("id", data.session_id);
 
-    return experimental_output as Debrief;
+    return debrief;
   });
 
 export const listSessions = createServerFn({ method: "GET" })

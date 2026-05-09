@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider, DEFAULT_MODEL, FAST_MODEL } from "@/lib/ai-gateway";
+import { createLovableAiGatewayProvider, DEFAULT_MODEL, FAST_MODEL, extractJsonText } from "@/lib/ai-gateway";
 
 export const DELIVERABLE_TYPES = [
   "30_60_90",
@@ -134,13 +134,15 @@ export const extractProjectBrief = createServerFn({ method: "POST" })
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_FLASH);
 
-    const { experimental_output: parsed } = await generateText({
+    const briefJsonShape = `{"deliverable_type":"30_60_90|tech_design_doc|product_strategy|gtm_plan|case_study|sales_pitch|eng_take_home|custom","requirements":["string"],"deadline":"string|null","audience":"string|null","format":"string|null","key_questions":["string"]}`;
+
+    const { text: briefText } = await generateText({
       model,
-      experimental_output: Output.object({ schema: ExtractedBriefSchema }),
       system:
-        "You are a take-home assignment parser. Extract the deliverable type (best fit from the enum), explicit requirements, deadline if any, intended audience, suggested format, and the key questions the brief is really asking. Return null when unknown.",
+        `You are a take-home assignment parser. Extract the deliverable type (best fit from the enum), explicit requirements, deadline if any, intended audience, suggested format, and the key questions the brief is really asking. Return null when unknown.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${briefJsonShape}`,
       prompt: `Parse this assignment brief.\n\n${data.raw_brief}`,
     });
+    const parsed = ExtractedBriefSchema.parse(JSON.parse(extractJsonText(briefText)));
 
     // Default title from job + deliverable type
     const { data: job } = await supabase.from("jobs").select("title").eq("id", data.job_id).maybeSingle();
@@ -271,22 +273,24 @@ export const runDeeperResearch = createServerFn({ method: "POST" })
 
     const system = `You are a research analyst. The candidate has a take-home assignment from ${company?.name ?? "the company"}: produce a ${DELIVERABLE_LABELS[(project.deliverable_type ?? "custom") as DeliverableType]} addressing these key questions:\n- ${keyQuestions}\n\nDraw on what you know about the company, the market, and the deliverable type. Be specific where you can; be honest about what you don't know rather than inventing facts. Cite specific market data, customer types, or technical details when you have them.`;
 
-    const { experimental_output } = await generateText({
+    const researchJsonShape = `{"findings":[{"topic":"string","summary":"string","key_facts":["string"],"implications_for_deliverable":"string"}],"open_questions":["string"]}`;
+
+    const { text: researchText } = await generateText({
       model,
-      experimental_output: Output.object({ schema: ResearchSchema }),
-      system,
+      system: `${system}\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${researchJsonShape}`,
       prompt: "Produce the structured research findings now. Aim for 5-8 substantive findings.",
     });
+    const researchOutput = ResearchSchema.parse(JSON.parse(extractJsonText(researchText)));
 
     await supabase
       .from("projects")
       .update({
-        research_notes: experimental_output as unknown as never,
+        research_notes: researchOutput as unknown as never,
         status: "researching",
       })
       .eq("id", project.id);
 
-    return experimental_output;
+    return researchOutput;
   });
 
 export const generateOutline = createServerFn({ method: "POST" })
@@ -314,17 +318,17 @@ export const generateOutline = createServerFn({ method: "POST" })
       if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
       const gateway = createLovableAiGatewayProvider(apiKey);
       const model = gateway(MODEL_FLASH);
-      const { experimental_output } = await generateText({
+      const outlineJsonShape = `{"sections":[{"title":"string","prompt":"string"}]}`;
+      const OutlineSectionsSchema = z.object({
+        sections: z.array(z.object({ title: z.string(), prompt: z.string() })),
+      });
+      const { text: outlineText } = await generateText({
         model,
-        experimental_output: Output.object({
-          schema: z.object({
-            sections: z.array(z.object({ title: z.string(), prompt: z.string() })),
-          }),
-        }),
-        system: "Given a take-home brief, propose 5-8 logical sections for the deliverable. Each has a short title and a 1-sentence prompt describing what should go in it.",
+        system: `Given a take-home brief, propose 5-8 logical sections for the deliverable. Each has a short title and a 1-sentence prompt describing what should go in it.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${outlineJsonShape}`,
         prompt: `Brief: ${(project as { brief?: string }).brief ?? ""}`,
       });
-      outline = experimental_output.sections.map((s, i) => ({
+      const outlineOutput = OutlineSectionsSchema.parse(JSON.parse(extractJsonText(outlineText)));
+      outline = outlineOutput.sections.map((s, i) => ({
         id: `s${i + 1}`,
         title: s.title,
         prompt: s.prompt,
