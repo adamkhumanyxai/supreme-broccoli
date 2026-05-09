@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { profileCompleteness, type ProfileRow } from "@/lib/profile";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -58,6 +58,9 @@ function Dashboard() {
         </Button>
         <Button size="lg" variant="outline" onClick={() => navigate({ to: "/projects" })} className="h-11">
           Projects
+        </Button>
+        <Button size="lg" variant="outline" onClick={() => navigate({ to: "/demo-interview" })} className="h-11">
+          <Sparkles className="mr-2 h-4 w-4" /> Demo Interview
         </Button>
       </div>
 
