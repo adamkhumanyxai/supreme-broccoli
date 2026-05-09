@@ -1,0 +1,267 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { getJob, updateJobStatus } from "@/lib/jobs.functions";
+import { generateInsights, DOSSIER_SECTIONS, type Dossier } from "@/lib/insights.functions";
+import { CompanyAvatar } from "@/components/jobs/CompanyAvatar";
+import { StatusPill, JOB_STATUSES, type JobStatus } from "@/components/jobs/StatusPill";
+import { DossierSection } from "@/components/jobs/DossierSection";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Download, RefreshCcw, AlertCircle, History, ExternalLink, MessagesSquare, FolderKanban } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/_authenticated/jobs/$jobId/")({
+  component: JobDetail,
+});
+
+function JobDetail() {
+  const { jobId } = Route.useParams();
+  const qc = useQueryClient();
+  const fetchJob = useServerFn(getJob);
+  const setStatus = useServerFn(updateJobStatus);
+  const regen = useServerFn(generateInsights);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["job", jobId],
+    queryFn: () => fetchJob({ data: { job_id: jobId } }),
+    refetchInterval: (q) => {
+      const d = q.state.data;
+      // Poll while there's no insight yet (generating)
+      if (!d) return 3000;
+      if (!d.insight) return 3000;
+      return false;
+    },
+  });
+
+  const [generating, setGenerating] = useState(false);
+
+  // Auto-generate if there's no insight at all
+  useEffect(() => {
+    if (data && !data.insight && !generating) {
+      setGenerating(true);
+      regen({ data: { job_id: jobId } })
+        .then(() => qc.invalidateQueries({ queryKey: ["job", jobId] }))
+        .catch((e) => toast.error((e as Error).message))
+        .finally(() => setGenerating(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.insight, jobId]);
+
+  const statusMutation = useMutation({
+    mutationFn: (s: JobStatus) => setStatus({ data: { job_id: jobId, status: s } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["job", jobId] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      toast.success("Status updated");
+    },
+  });
+
+  async function onRegenerate() {
+    setGenerating(true);
+    try {
+      await regen({ data: { job_id: jobId } });
+      await refetch();
+      toast.success("Dossier regenerated");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
+  if (!data) return null;
+
+  const { job, company, insight } = data;
+  const dossier = (insight?.dossier ?? null) as Dossier | null;
+  const isError = insight?.error && !dossier;
+  const isGenerating = generating || (!insight && !isError);
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <CompanyAvatar name={company?.name} logoUrl={company?.logo_url} size={56} />
+          <div>
+            <h2 className="font-serif text-3xl text-foreground">{job.title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {company?.name ?? "Unknown company"}
+              {company?.hq_location ? ` • ${company.hq_location}` : ""}
+              {job.source_url ? (
+                <>
+                  {" • "}
+                  <a
+                    href={job.source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    Source <ExternalLink className="h-3 w-3" />
+                  </a>
+                </>
+              ) : null}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={job.status}
+            onValueChange={(v) => statusMutation.mutate(v as JobStatus)}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {JOB_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  <StatusPill status={s} />
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={onRegenerate} disabled={isGenerating}>
+            <RefreshCcw className={`mr-2 h-4 w-4 ${isGenerating ? "animate-spin" : ""}`} />
+            Regenerate
+          </Button>
+          <Link to="/jobs/$jobId/mock/new" params={{ jobId }}>
+            <Button disabled={!dossier}>
+              <MessagesSquare className="mr-2 h-4 w-4" /> Start mock interview
+            </Button>
+          </Link>
+          <Link to="/jobs/$jobId/projects" params={{ jobId }}>
+            <Button variant="outline">
+              <FolderKanban className="mr-2 h-4 w-4" /> Projects
+            </Button>
+          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={!dossier}>
+                <Download className="mr-2 h-4 w-4" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => dossier && downloadMarkdown(job.title, company?.name, dossier)}
+              >
+                Markdown (.md)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.print()}>Print / PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-[200px_1fr]">
+        {/* Sticky TOC */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-20 space-y-1">
+            <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Sections</p>
+            {DOSSIER_SECTIONS.map((s) => (
+              <a
+                key={s.key}
+                href={`#${s.key}`}
+                className="block rounded px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                {s.title}
+              </a>
+            ))}
+          </div>
+        </aside>
+
+        {/* Body */}
+        <div className="min-w-0 space-y-4">
+          {isError && (
+            <div className="editorial-card flex items-start gap-3 border-destructive/40 p-5">
+              <AlertCircle className="mt-0.5 h-5 w-5 text-destructive" />
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Generation failed</p>
+                <p className="mt-1 text-sm text-muted-foreground">{insight?.error}</p>
+                <Button onClick={onRegenerate} className="mt-3" size="sm">
+                  Try again
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {isGenerating &&
+            DOSSIER_SECTIONS.map((s) => (
+              <div key={s.key} className="editorial-card space-y-3 p-6">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9" />
+                  <Skeleton className="h-6 w-48" />
+                </div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-11/12" />
+                <Skeleton className="h-4 w-10/12" />
+              </div>
+            ))}
+
+          {dossier &&
+            DOSSIER_SECTIONS.map((s) => (
+              <DossierSection
+                key={s.key}
+                id={s.key}
+                title={s.title}
+                icon={s.icon}
+                content={dossier[s.key as keyof Dossier] ?? ""}
+              />
+            ))}
+
+          {insight && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-4 text-xs text-muted-foreground">
+              <span>
+                {insight.generated_at
+                  ? `Last generated ${formatDistanceToNow(new Date(insight.generated_at), { addSuffix: true })}`
+                  : "Not yet generated"}
+                {insight.model ? ` • Model: ${insight.model}` : ""} • Version {insight.version}
+              </span>
+              {insight.version > 1 && (
+                <Link
+                  to="/jobs/$jobId/history"
+                  params={{ jobId }}
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  <History className="h-3 w-3" /> View previous versions
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function downloadMarkdown(title: string, companyName: string | null | undefined, dossier: Dossier) {
+  const md =
+    `# ${title}\n_${companyName ?? "Company"}_\n\n` +
+    DOSSIER_SECTIONS.map(
+      (s) => `## ${s.title}\n\n${dossier[s.key as keyof Dossier] ?? ""}\n`,
+    ).join("\n");
+  const blob = new Blob([md], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(companyName ?? "company").toLowerCase().replace(/\s+/g, "-")}-dossier.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
