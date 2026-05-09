@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText, Output } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
+import { createLovableAiGatewayProvider, FAST_MODEL } from "@/lib/ai-gateway";
 
 const URL_RE = /^https?:\/\/\S+$/i;
 
@@ -81,7 +81,7 @@ export const extractJob = createServerFn({ method: "POST" })
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
-    const model = gateway("anthropic/claude-haiku-4.5");
+    const model = gateway(FAST_MODEL);
 
     const { experimental_output: parsed } = await generateText({
       model,

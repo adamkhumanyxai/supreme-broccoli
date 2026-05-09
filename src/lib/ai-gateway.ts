@@ -20,11 +20,18 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
  *   const model = provider("anthropic/claude-sonnet-4.5"); // or any OpenRouter model id
  */
 
-export const DEFAULT_MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.5";
+// Defaults are known-good OpenRouter slugs. You can override either at deploy
+// time via OPENROUTER_MODEL / OPENROUTER_MODEL_FAST env vars without code changes.
+//
+// Worth-trying overrides once basic flow works:
+//   anthropic/claude-sonnet-4.5    (when available — quality bar for sales coaching)
+//   google/gemini-2.5-pro          (broadest knowledge for company dossiers)
+//   perplexity/sonar-large         (built-in web search — replaces lost grounding)
+//   meta-llama/llama-3.1-405b-instruct (different conversational voice for mock interviews)
+export const DEFAULT_MODEL = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o";
 
-// Faster/cheaper model for trivial tasks like job-description parsing.
-// Override via OPENROUTER_MODEL_FAST env var.
-export const FAST_MODEL = process.env.OPENROUTER_MODEL_FAST ?? "anthropic/claude-haiku-4.5";
+// Faster/cheaper model for trivial tasks (job-description parsing, brief extraction).
+export const FAST_MODEL = process.env.OPENROUTER_MODEL_FAST ?? "openai/gpt-4o-mini";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 

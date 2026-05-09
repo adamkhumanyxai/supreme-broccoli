@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText, Output } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
+import { createLovableAiGatewayProvider, DEFAULT_MODEL, FAST_MODEL } from "@/lib/ai-gateway";
 
 export const DELIVERABLE_TYPES = [
   "30_60_90",
@@ -56,8 +56,8 @@ export type OutlineSection = {
   content: string; // markdown
 };
 
-const MODEL_PRO = "anthropic/claude-sonnet-4.5";
-const MODEL_FLASH = "anthropic/claude-haiku-4.5";
+const MODEL_PRO = DEFAULT_MODEL;
+const MODEL_FLASH = FAST_MODEL;
 
 const TEMPLATES: Record<DeliverableType, { title: string; prompt: string }[]> = {
   "30_60_90": [

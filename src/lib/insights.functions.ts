@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText, Output } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
+import { createLovableAiGatewayProvider, DEFAULT_MODEL } from "@/lib/ai-gateway";
 
 export const DOSSIER_SECTIONS = [
   { key: "snapshot", title: "Snapshot", icon: "Sparkles" },
@@ -32,7 +32,7 @@ const DossierSchema = z.object({
 
 export type Dossier = z.infer<typeof DossierSchema>;
 
-const MODEL_ID = "anthropic/claude-sonnet-4.5";
+const MODEL_ID = DEFAULT_MODEL;
 
 function bullets(arr: string[] | null | undefined): string {
   if (!arr || arr.length === 0) return "(none provided)";
