@@ -51,3 +51,13 @@ export const createAiProvider = (apiKey: string) =>
 // Backward-compat alias — keeps the old import name working at call sites.
 // New code should use `createAiProvider`.
 export const createLovableAiGatewayProvider = createAiProvider;
+
+// Strips markdown code fences from model output before JSON.parse.
+// Models sometimes wrap JSON in ```json ... ``` even when told not to.
+export function extractJsonText(text: string): string {
+  return text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+}

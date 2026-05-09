@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider, DEFAULT_MODEL } from "@/lib/ai-gateway";
+import { createLovableAiGatewayProvider, DEFAULT_MODEL, extractJsonText } from "@/lib/ai-gateway";
 
 export const DOSSIER_SECTIONS = [
   { key: "snapshot", title: "Snapshot", icon: "Sparkles" },
@@ -103,17 +103,18 @@ ${resps}
 
 Be specific, not generic. The "likely_themes" section MUST reference the specific stated requirements above. Each output field is clean GitHub-flavored Markdown (use bullet lists, bold sparingly, no top-level headings — section titles are rendered separately). Tailor "domain_context" to the candidate's domain (${profile?.domain ?? "unspecified"}).`;
 
+    const dossierJsonShape = `{"snapshot":"string","business_model":"string","financials_trajectory":"string","culture_values":"string","leadership":"string","recent_moves":"string","competitive_landscape":"string","domain_context":"string","likely_themes":"string","smart_questions":"string"}`;
+
     let dossier: Dossier | null = null;
     let errorMsg: string | null = null;
     try {
-      const { experimental_output } = await generateText({
+      const { text } = await generateText({
         model,
-        experimental_output: Output.object({ schema: DossierSchema }),
-        system,
+        system: `${system}\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${dossierJsonShape}`,
         prompt:
           "Produce the dossier now. Each field should be 4-12 sentences (or a strong bulleted list) of substantive, specific content.",
       });
-      dossier = experimental_output;
+      dossier = DossierSchema.parse(JSON.parse(extractJsonText(text)));
     } catch (e) {
       console.error("Dossier generation failed", e);
       errorMsg = e instanceof Error ? e.message : "Generation failed";
