@@ -50,10 +50,6 @@ function MockNew() {
       !!navigator.mediaDevices?.getUserMedia;
     setVoiceSupported(supported);
     if (!supported) return;
-    fetch("/api/gemini-token", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${user ? "" : ""}` }, // header re-set below
-    }).catch(() => undefined);
     // Fire-and-forget probe via supabase session
     import("@/integrations/supabase/client").then(({ supabase }) => {
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -201,31 +197,31 @@ function MockNew() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mode</Label>
-        <div className="editorial-card flex items-start justify-between gap-4 p-4">
-          <div className="flex items-start gap-3">
-            <Mic className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <div>
-              <p className="font-medium text-foreground">Voice mode</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {!voiceSupported
-                  ? "Your browser doesn't support AudioWorklet. Use Chrome, Edge, or Firefox."
-                  : voiceAvailable === false
-                  ? "Voice not configured (GEMINI_API_KEY missing). Falling back to text mode."
-                  : voiceAvailable === null
-                  ? "Checking availability…"
-                  : "Real-time voice via Gemini Live. Requires mic permission. You can interrupt the interviewer mid-sentence."}
-              </p>
+      {(voiceAvailable === true || voiceAvailable === null) && (
+        <section className="space-y-3">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mode</Label>
+          <div className="editorial-card flex items-start justify-between gap-4 p-4">
+            <div className="flex items-start gap-3">
+              <Mic className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">Voice mode</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {!voiceSupported
+                    ? "Your browser doesn't support AudioWorklet. Use Chrome, Edge, or Firefox."
+                    : voiceAvailable === null
+                    ? "Checking availability…"
+                    : "Real-time voice via Gemini Live. Requires mic permission. You can interrupt the interviewer mid-sentence."}
+                </p>
+              </div>
             </div>
+            <Switch
+              checked={voiceMode}
+              disabled={!voiceSupported || voiceAvailable === null}
+              onCheckedChange={setVoiceMode}
+            />
           </div>
-          <Switch
-            checked={voiceMode}
-            disabled={!voiceSupported || voiceAvailable === false}
-            onCheckedChange={setVoiceMode}
-          />
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="space-y-3">
         <Label className="text-xs uppercase tracking-wider text-muted-foreground">Difficulty</Label>
