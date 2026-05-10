@@ -22,6 +22,7 @@ import {
   Briefcase,
   MessagesSquare,
   FolderKanban,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 type NavItem = {
-  to: "/dashboard" | "/jobs" | "/sessions" | "/projects" | "/profile" | "/settings";
+  to: "/dashboard" | "/jobs" | "/sessions" | "/projects" | "/profile" | "/settings" | "/demo-interview";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
@@ -39,6 +40,7 @@ const NAV: NavItem[] = [
   { to: "/jobs", label: "Jobs", icon: Briefcase },
   { to: "/sessions", label: "Sessions", icon: MessagesSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
+  { to: "/demo-interview", label: "Demo", icon: Sparkles, exact: true },
   { to: "/profile", label: "Profile", icon: UserIcon },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
@@ -51,6 +53,7 @@ function PageTitle() {
     "/jobs/new": "New job",
     "/sessions": "Sessions",
     "/projects": "Projects",
+    "/demo-interview": "Demo Interview",
     "/profile": "Profile",
     "/settings": "Settings",
     "/onboarding": "Welcome",

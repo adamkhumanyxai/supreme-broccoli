@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listInsightHistory } from "@/lib/jobs.functions";
 import { DOSSIER_SECTIONS, type Dossier } from "@/lib/insights.functions";
 import { DossierSection } from "@/components/jobs/DossierSection";
+import { EmployerScoreCard } from "@/components/jobs/EmployerScoreCard";
 import { ChevronLeft } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -75,15 +76,27 @@ function HistoryPage() {
                 )}
                 {dossier ? (
                   <div className="space-y-3">
-                    {DOSSIER_SECTIONS.map((s) => (
-                      <DossierSection
-                        key={s.key}
-                        id={`${row.id}-${s.key}`}
-                        title={s.title}
-                        icon={s.icon}
-                        content={dossier[s.key as keyof Dossier] ?? ""}
-                      />
-                    ))}
+                    {DOSSIER_SECTIONS.map((s) => {
+                      if (s.key === "employer_brand") {
+                        return dossier.employer_brand ? (
+                          <EmployerScoreCard
+                            key={s.key}
+                            id={`${row.id}-${s.key}`}
+                            brand={dossier.employer_brand}
+                          />
+                        ) : null;
+                      }
+                      const content = dossier[s.key as keyof Omit<Dossier, "employer_brand">] as string | undefined;
+                      return (
+                        <DossierSection
+                          key={s.key}
+                          id={`${row.id}-${s.key}`}
+                          title={s.title}
+                          icon={s.icon}
+                          content={content ?? ""}
+                        />
+                      );
+                    })}
                   </div>
                 ) : (
                   !row.error && <p className="text-sm text-muted-foreground">No content.</p>

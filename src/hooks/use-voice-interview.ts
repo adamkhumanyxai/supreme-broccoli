@@ -1,29 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * useVoiceInterview — drives an OpenAI Realtime voice session via WebRTC.
- *
- * Flow:
- * 1. Requests mic permission
- * 2. POSTs to /api/voice-token with system instructions + voice name;
- *    server creates an OpenAI Realtime session and returns a short-lived
- *    client_secret (ephemeral token valid ~60 s)
- * 3. Creates an RTCPeerConnection, adds the mic track, opens a data channel
- *    for server events, creates an SDP offer
- * 4. Exchanges SDP with api.openai.com/v1/realtime using the ephemeral token
- * 5. On data-channel open, sends response.create to trigger the AI opening
- * 6. Plays AI audio via a hidden <audio> element (WebRTC delivers Opus;
- *    no PCM16 decode or AudioWorklet needed)
- * 7. Accumulates transcript from input_audio_transcription + audio_transcript events
- * 8. Muting disables the mic track — WebRTC stops sending audio to OpenAI
- */
-
 export type VoiceState =
   | "idle"
   | "requesting_permission"
   | "connecting"
   | "listening"
+  | "processing"
   | "speaking"
   | "ended"
   | "error";
@@ -36,7 +19,7 @@ export type VoiceTurn = {
 
 export type VoiceInterviewOptions = {
   systemInstruction: string;
-  /** OpenAI Realtime voice name: alloy | ash | ballad | coral | echo | sage | shimmer | verse */
+  /** Ignored — server picks the ElevenLabs voice via ELEVENLABS_VOICE_ID */
   voiceName?: string;
 };
 
@@ -51,6 +34,23 @@ export type VoiceInterview = {
   toggleMute: () => void;
 };
 
+// VAD settings
+const VAD_THRESHOLD = 0.015;        // normalised energy threshold (0–1)
+const SILENCE_DURATION_MS = 1500;   // ms of silence after speech to trigger send
+const MIN_SPEECH_DURATION_MS = 400; // ignore very short sounds / blips
+
+/**
+ * useVoiceInterview — Whisper STT + OpenRouter LLM + ElevenLabs TTS pipeline.
+ *
+ * Flow:
+ * 1. Request mic permission
+ * 2. Generate AI opening message (start=true, no audio)
+ * 3. Loop: record mic → VAD detects end of speech → POST to /api/interview-turn
+ *    → receive { user_text, ai_text, audio_b64 } → play audio → back to 3
+ *
+ * Required server env vars: OPENAI_API_KEY, OPENROUTER_API_KEY, ELEVENLABS_API_KEY.
+ * Optional: ELEVENLABS_VOICE_ID (default: pqHfZKP75CvOlQylNhV4 = Bill, Australian male).
+ */
 export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
   const [state, setState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState<VoiceTurn[]>([]);
@@ -58,60 +58,227 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const dcRef = useRef<RTCDataChannel | null>(null);
+  // All mutable state in refs to avoid stale closures in rAF/MediaRecorder callbacks
   const streamRef = useRef<MediaStream | null>(null);
-  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const levelLoopRef = useRef<number | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
+  const currentRecorderRef = useRef<MediaRecorder | null>(null);
+  const sessionRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const levelLoopRef = useRef<number | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const isEndingRef = useRef(false);
   const isMutedRef = useRef(false);
-  const interimAssistantRef = useRef("");
+  const transcriptRef = useRef<VoiceTurn[]>([]);
+  const systemInstructionRef = useRef(opts.systemInstruction);
+  const hasSpeechRef = useRef(false);
+  const speechStartRef = useRef<number | null>(null);
+  const lastSpeechRef = useRef<number | null>(null);
+
+  useEffect(() => { systemInstructionRef.current = opts.systemInstruction; }, [opts.systemInstruction]);
+  useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
+
+  const addTurn = useCallback((turn: VoiceTurn) => {
+    setTranscript((t) => [...t, turn]);
+    transcriptRef.current = [...transcriptRef.current, turn];
+  }, []);
 
   const cleanup = useCallback(() => {
+    isEndingRef.current = true;
     if (levelLoopRef.current != null) {
       cancelAnimationFrame(levelLoopRef.current);
       levelLoopRef.current = null;
     }
-    if (dcRef.current) {
-      try { dcRef.current.close(); } catch (_) {}
-      dcRef.current = null;
+    if (currentRecorderRef.current?.state !== "inactive") {
+      try { currentRecorderRef.current?.stop(); } catch { /* ignore */ }
     }
-    if (pcRef.current) {
-      try { pcRef.current.close(); } catch (_) {}
-      pcRef.current = null;
+    currentRecorderRef.current = null;
+    if (sessionRecorderRef.current?.state !== "inactive") {
+      try { sessionRecorderRef.current?.stop(); } catch { /* ignore */ }
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+    sessionRecorderRef.current = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (audioCtxRef.current?.state !== "closed") {
+      audioCtxRef.current?.close().catch(() => undefined);
     }
-    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
-      audioCtxRef.current.close().catch(() => undefined);
-      audioCtxRef.current = null;
-    }
-    if (audioElRef.current) {
-      audioElRef.current.srcObject = null;
-      audioElRef.current.parentNode?.removeChild(audioElRef.current);
-      audioElRef.current = null;
-    }
-    if (recorderRef.current && recorderRef.current.state !== "inactive") {
-      try { recorderRef.current.stop(); } catch (_) {}
-      recorderRef.current = null;
+    audioCtxRef.current = null;
+    analyserRef.current = null;
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.src = "";
+      try { document.body.removeChild(audioElementRef.current); } catch { /* ignore */ }
+      audioElementRef.current = null;
     }
   }, []);
 
   useEffect(() => () => cleanup(), [cleanup]);
 
+  // Decode base64 mp3 and play through a hidden <audio> element.
+  const playAudio = useCallback((b64: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      if (!audioElementRef.current) {
+        const el = document.createElement("audio");
+        el.style.display = "none";
+        document.body.appendChild(el);
+        audioElementRef.current = el;
+      }
+      const el = audioElementRef.current;
+      el.src = url;
+      el.onended = () => { URL.revokeObjectURL(url); resolve(); };
+      el.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+      el.play().catch(() => resolve());
+    });
+  }, []);
+
+  // Forward refs so sendTurn and startCycle can call each other without circular deps
+  const sendTurnRef = useRef<(blob: Blob, isStart?: boolean) => Promise<void>>(async () => {});
+  const startCycleRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    sendTurnRef.current = async (blob: Blob, isStart = false) => {
+      if (isEndingRef.current) return;
+      setState("processing");
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const jwt = session?.access_token;
+        if (!jwt) { setError("Not authenticated."); setState("error"); return; }
+
+        const fd = new FormData();
+        if (!isStart && blob.size > 0) fd.append("audio", blob, "audio.webm");
+        fd.append("messages", JSON.stringify(
+          transcriptRef.current.map((t) => ({
+            role: t.role === "candidate" ? "user" : "assistant",
+            content: t.content,
+          })),
+        ));
+        fd.append("system_instruction", systemInstructionRef.current);
+        if (isStart) fd.append("start", "true");
+
+        const res = await fetch("/api/interview-turn", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${jwt}` },
+          body: fd,
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` })) as { error?: string };
+          setError(errData.error ?? "Voice turn failed.");
+          setState("error");
+          return;
+        }
+
+        const data = await res.json() as {
+          user_text?: string;
+          ai_text?: string;
+          audio_b64?: string | null;
+          error?: string;
+        };
+
+        if (data.error && !data.ai_text) { setError(data.error); setState("error"); return; }
+
+        // Empty transcription (silence / too short) — just restart listening
+        if (!isStart && !data.user_text && !data.ai_text) {
+          if (!isEndingRef.current) startCycleRef.current();
+          return;
+        }
+
+        if (data.user_text) {
+          addTurn({ role: "candidate", content: data.user_text, timestamp: new Date().toISOString() });
+        }
+        if (data.ai_text) {
+          addTurn({ role: "interviewer", content: data.ai_text, timestamp: new Date().toISOString() });
+        }
+
+        if (data.audio_b64) {
+          setState("speaking");
+          await playAudio(data.audio_b64);
+        }
+      } catch (e) {
+        setError((e as Error).message ?? "Turn failed.");
+        setState("error");
+        return;
+      }
+      if (!isEndingRef.current) startCycleRef.current();
+    };
+  }, [playAudio, addTurn]);
+
+  useEffect(() => {
+    startCycleRef.current = () => {
+      if (!streamRef.current || isEndingRef.current) return;
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+      const recorder = new MediaRecorder(streamRef.current, { mimeType });
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        if (isEndingRef.current) return;
+        const blob = new Blob(chunks, { type: mimeType });
+        if (blob.size > 2000 && hasSpeechRef.current) {
+          void sendTurnRef.current(blob);
+        } else {
+          setState("listening");
+          startCycleRef.current();
+        }
+      };
+
+      currentRecorderRef.current = recorder;
+      hasSpeechRef.current = false;
+      speechStartRef.current = null;
+      lastSpeechRef.current = null;
+      recorder.start(100);
+      setState("listening");
+
+      const vadTick = () => {
+        if (!analyserRef.current || recorder.state !== "recording" || isEndingRef.current) return;
+
+        const buf = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteTimeDomainData(buf);
+        let max = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const v = Math.abs(buf[i] - 128) / 128;
+          if (v > max) max = v;
+        }
+        setAudioLevel(max);
+
+        // When muted, tracks are disabled → max ≈ 0 → VAD never triggers
+        if (!isMutedRef.current && max > VAD_THRESHOLD) {
+          if (!hasSpeechRef.current) {
+            hasSpeechRef.current = true;
+            speechStartRef.current = Date.now();
+          }
+          lastSpeechRef.current = Date.now();
+        } else if (hasSpeechRef.current && lastSpeechRef.current) {
+          const silence = Date.now() - lastSpeechRef.current;
+          const speechDur = lastSpeechRef.current - (speechStartRef.current ?? lastSpeechRef.current);
+          if (silence >= SILENCE_DURATION_MS && speechDur >= MIN_SPEECH_DURATION_MS) {
+            recorder.stop();
+            return;
+          }
+        }
+        levelLoopRef.current = requestAnimationFrame(vadTick);
+      };
+      levelLoopRef.current = requestAnimationFrame(vadTick);
+    };
+  }, []); // empty deps — everything via refs
+
   const start = useCallback(async () => {
     setError(null);
     setState("requesting_permission");
+    isEndingRef.current = false;
 
-    // 1. Mic permission
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true },
       });
     } catch {
       setError("Microphone permission denied or unavailable.");
@@ -120,192 +287,49 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
     }
     streamRef.current = stream;
 
-    // 2. Create OpenAI Realtime session — instructions and voice baked in server-side
-    setState("connecting");
-    let clientSecret: string;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const jwt = session?.access_token;
-      if (!jwt) {
-        setError("Not authenticated.");
-        setState("error");
-        cleanup();
-        return;
-      }
-      const res = await fetch("/api/voice-token", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${jwt}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          instructions: opts.systemInstruction,
-          voice: opts.voiceName ?? "alloy",
-        }),
-      });
-      const data = await res.json() as { voice_available: boolean; client_secret?: { value: string }; error?: string };
-      if (!data.voice_available || !data.client_secret?.value) {
-        setError(data.error ?? "Voice mode not available.");
-        setState("error");
-        cleanup();
-        return;
-      }
-      clientSecret = data.client_secret.value;
-    } catch {
-      setError("Could not get voice session.");
-      setState("error");
-      cleanup();
-      return;
-    }
-
-    // 3. WebRTC peer connection
-    const pc = new RTCPeerConnection();
-    pcRef.current = pc;
-
-    // Hidden audio element — WebRTC delivers AI audio as an Opus track;
-    // attaching it to an <audio> element lets the browser decode and play it natively.
-    const audioEl = document.createElement("audio");
-    audioEl.autoplay = true;
-    document.body.appendChild(audioEl);
-    audioElRef.current = audioEl;
-    pc.ontrack = (e) => {
-      audioEl.srcObject = e.streams[0];
-      audioEl.play().catch(() => undefined);
-    };
-
-    // Mic as send track (sendrecv transceiver — also opens receive path for AI audio)
-    stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-
-    // Data channel for Realtime API events
-    const dc = pc.createDataChannel("oai-events");
-    dcRef.current = dc;
-
-    dc.onopen = () => {
-      // Session is fully configured (instructions/voice set during session creation).
-      // Trigger the interviewer's opening statement.
-      dc.send(JSON.stringify({ type: "response.create" }));
-      setState("listening");
-    };
-
-    dc.onmessage = (e) => {
-      let msg: Record<string, unknown>;
-      try { msg = JSON.parse(e.data as string); } catch { return; }
-      const type = msg.type as string;
-
-      // AI speech — accumulate delta, commit on done
-      if (type === "response.audio_transcript.delta") {
-        interimAssistantRef.current += (msg.delta as string) ?? "";
-      }
-      if (type === "response.audio_transcript.done") {
-        const text = ((msg.transcript as string) ?? interimAssistantRef.current).trim();
-        interimAssistantRef.current = "";
-        if (text) {
-          setTranscript((t) => [...t, { role: "interviewer", content: text, timestamp: new Date().toISOString() }]);
-        }
-      }
-
-      // User speech (transcribed by Whisper server-side)
-      if (type === "conversation.item.input_audio_transcription.completed") {
-        const text = ((msg.transcript as string) ?? "").trim();
-        if (text) {
-          setTranscript((t) => [...t, { role: "candidate", content: text, timestamp: new Date().toISOString() }]);
-        }
-      }
-
-      // State transitions
-      if (type === "response.audio.delta") setState("speaking");
-      if (type === "response.done") setState("listening");
-      if (type === "input_audio_buffer.speech_started") setState("listening");
-
-      if (type === "error") {
-        console.error("Realtime API error:", msg);
-        const errMsg = (msg.error as { message?: string } | undefined)?.message ?? "Realtime API error";
-        setError(errMsg);
-        setState("error");
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-        setError("Voice connection lost.");
-        setState("error");
-      }
-    };
-
-    // 4. SDP offer → OpenAI → SDP answer
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-
-    const sdpRes = await fetch("https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${clientSecret}`,
-        "Content-Type": "application/sdp",
-      },
-      body: offer.sdp,
-    });
-
-    if (!sdpRes.ok) {
-      const errText = await sdpRes.text();
-      setError(`WebRTC handshake failed: ${errText}`);
-      setState("error");
-      cleanup();
-      return;
-    }
-
-    const answerSdp = await sdpRes.text();
-    await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
-
-    // 5. Mic audio level meter for the visualiser bar
-    const audioCtx = new AudioContext();
-    audioCtxRef.current = audioCtx;
-    const source = audioCtx.createMediaStreamSource(stream);
-    const analyser = audioCtx.createAnalyser();
+    const ctx = new AudioContext();
+    audioCtxRef.current = ctx;
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
     source.connect(analyser);
-    const dataArr = new Uint8Array(analyser.frequencyBinCount);
-    const tick = () => {
-      analyser.getByteTimeDomainData(dataArr);
-      let max = 0;
-      for (let i = 0; i < dataArr.length; i++) {
-        const v = Math.abs(dataArr[i] - 128) / 128;
-        if (v > max) max = v;
-      }
-      setAudioLevel(max);
-      levelLoopRef.current = requestAnimationFrame(tick);
-    };
-    tick();
+    analyserRef.current = analyser;
 
-    // 6. Record mic side for session log
+    // Session-level mic recorder for the end() audio blob
     try {
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      recorderRef.current = recorder;
-      recorder.ondataavailable = (ev) => { if (ev.data.size > 0) recordedChunksRef.current.push(ev.data); };
-      recorder.start(1000);
-    } catch (_) {}
+      const sr = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      sr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+      sr.start(1000);
+      sessionRecorderRef.current = sr;
+    } catch { /* MediaRecorder unavailable */ }
 
-  }, [opts.systemInstruction, opts.voiceName, cleanup]);
+    setState("connecting");
+    await sendTurnRef.current(new Blob(), true);
+  }, []);
 
   const end = useCallback(async (): Promise<{ audioBlob: Blob | null; transcript: VoiceTurn[] }> => {
     setState("ended");
+    isEndingRef.current = true;
+
     let audioBlob: Blob | null = null;
-    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+    if (sessionRecorderRef.current && sessionRecorderRef.current.state !== "inactive") {
       try {
         await new Promise<void>((resolve) => {
-          recorderRef.current!.onstop = () => resolve();
-          recorderRef.current!.stop();
+          sessionRecorderRef.current!.onstop = () => resolve();
+          sessionRecorderRef.current!.stop();
         });
         audioBlob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
-      } catch (_) {}
+      } catch { /* ignore */ }
     }
+
+    const finalTranscript = transcriptRef.current;
     cleanup();
-    return { audioBlob, transcript };
-  }, [transcript, cleanup]);
+    return { audioBlob, transcript: finalTranscript };
+  }, [cleanup]);
 
   const toggleMute = useCallback(() => {
     isMutedRef.current = !isMutedRef.current;
     setIsMuted(isMutedRef.current);
-    // Disabling the track stops WebRTC from sending audio to OpenAI
     streamRef.current?.getAudioTracks().forEach((t) => { t.enabled = !isMutedRef.current; });
   }, []);
 
