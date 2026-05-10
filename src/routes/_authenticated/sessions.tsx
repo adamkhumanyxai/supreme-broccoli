@@ -1,11 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { listSessions } from "@/lib/interview.functions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { listSessions, deleteSession } from "@/lib/interview.functions";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
-import { MessagesSquare, Mic } from "lucide-react";
+import { MessagesSquare, Mic, Trash2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/sessions")({
   component: SessionsList,
@@ -13,11 +25,31 @@ export const Route = createFileRoute("/_authenticated/sessions")({
 
 function SessionsList() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const fetch = useServerFn(listSessions);
+  const remove = useServerFn(deleteSession);
   const { data, isLoading } = useQuery({
     queryKey: ["sessions"],
     queryFn: () => fetch(),
   });
+
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; label: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await remove({ data: { session_id: pendingDelete.id } });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("Session deleted");
+      setPendingDelete(null);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   const sessions = data ?? [];
@@ -104,19 +136,53 @@ function SessionsList() {
                   {s.overall_score != null ? s.overall_score.toFixed(1) : "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link
-                    to="/jobs/$jobId/mock/$sessionId/debrief"
-                    params={{ jobId: s.job_id, sessionId: s.id }}
-                    className="text-primary hover:underline"
-                  >
-                    {s.status === "completed" ? "Debrief" : "Open"}
-                  </Link>
+                  <span className="inline-flex items-center gap-3">
+                    <Link
+                      to="/jobs/$jobId/mock/$sessionId/debrief"
+                      params={{ jobId: s.job_id, sessionId: s.id }}
+                      className="text-primary hover:underline"
+                    >
+                      {s.status === "completed" ? "Debrief" : "Open"}
+                    </Link>
+                    <button
+                      className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setPendingDelete({
+                        id: s.id,
+                        label: `${s.company_name ? `${s.company_name} · ` : ""}${s.job_title ?? "session"} — ${s.started_at ? format(new Date(s.started_at), "MMM d") : ""}`,
+                      })}
+                      title="Delete session"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o && !deleting) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{pendingDelete?.label}</strong> — along with its transcript and feedback — will be permanently removed. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

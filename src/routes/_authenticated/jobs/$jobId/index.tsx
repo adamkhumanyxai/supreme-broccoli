@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { getJob, updateJobStatus } from "@/lib/jobs.functions";
+import { getJob, updateJobStatus, deleteJob } from "@/lib/jobs.functions";
 import { generateInsights, DOSSIER_SECTIONS, type Dossier } from "@/lib/insights.functions";
 import { CompanyAvatar } from "@/components/jobs/CompanyAvatar";
 import { StatusPill, JOB_STATUSES, type JobStatus } from "@/components/jobs/StatusPill";
@@ -23,7 +23,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, RefreshCcw, AlertCircle, History, ExternalLink, MessagesSquare, FolderKanban } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Download, RefreshCcw, AlertCircle, History, ExternalLink, MessagesSquare, FolderKanban, Trash2, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -34,9 +44,11 @@ export const Route = createFileRoute("/_authenticated/jobs/$jobId/")({
 function JobDetail() {
   const { jobId } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const fetchJob = useServerFn(getJob);
   const setStatus = useServerFn(updateJobStatus);
   const regen = useServerFn(generateInsights);
+  const remove = useServerFn(deleteJob);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["job", jobId],
@@ -51,6 +63,22 @@ function JobDetail() {
   });
 
   const [generating, setGenerating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await remove({ data: { job_id: jobId } });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      toast.success("Job deleted");
+      navigate({ to: "/jobs" });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   // Auto-generate if there's no insight at all
   useEffect(() => {
@@ -167,8 +195,38 @@ function JobDetail() {
               <DropdownMenuItem onClick={() => window.print()}>Print / PDF</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            variant="outline"
+            size="icon"
+            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setConfirmDelete(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={(o) => { if (!o && !deleting) setConfirmDelete(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{job.title}</strong> — along with its dossier, all mock sessions, and any projects — will be permanently removed. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid gap-8 lg:grid-cols-[200px_1fr]">
         {/* Sticky TOC */}

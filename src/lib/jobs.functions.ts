@@ -292,3 +292,19 @@ export const listInsightHistory = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return rows || [];
   });
+
+export const deleteJob = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { job_id: string }) =>
+    z.object({ job_id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("jobs")
+      .delete()
+      .eq("id", data.job_id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

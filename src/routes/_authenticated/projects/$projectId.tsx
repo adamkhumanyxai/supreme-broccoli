@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -8,6 +8,7 @@ import {
   generateOutline,
   updateOutline,
   updatePersonalRequest,
+  deleteProject,
   draftSection,
   exportProject,
   DELIVERABLE_LABELS,
@@ -27,7 +28,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, Sparkles, Search, FileText, Download, Wand2, Minimize2, Maximize2, MessagesSquare, Lightbulb, Pencil, Check, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Sparkles, Search, FileText, Download, Wand2, Minimize2, Maximize2, MessagesSquare, Lightbulb, Pencil, Check, X, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +58,25 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId")({
 function ProjectWorkspace() {
   const { projectId } = Route.useParams();
   const fetchProject = useServerFn(getProject);
+  const remove = useServerFn(deleteProject);
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await remove({ data: { project_id: projectId } });
+      qc.invalidateQueries({ queryKey: ["projects", "all"] });
+      toast.success("Project deleted");
+      navigate({ to: "/projects" });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -82,8 +111,40 @@ function ProjectWorkspace() {
             {data.company?.name ?? "Unknown company"} · {data.job?.title}
           </p>
         </div>
-        <ExportMenu projectId={projectId} project={project} />
+        <div className="flex items-center gap-2">
+          <ExportMenu projectId={projectId} project={project} />
+          <Button
+            variant="outline"
+            size="icon"
+            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setConfirmDelete(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={(o) => { if (!o && !deleting) setConfirmDelete(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{project.title}</strong> — along with its research, outline, and all drafted sections — will be permanently removed. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Tabs defaultValue="brief" className="space-y-6">
         <TabsList>
