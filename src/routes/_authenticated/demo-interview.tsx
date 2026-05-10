@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Play, RotateCcw, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/demo-interview")({
@@ -114,7 +115,12 @@ function DemoInterview() {
 
     // Preload first two turns before starting
     const [first] = await Promise.all([getAudio(0), getAudio(1)]);
-    if (!first || abortRef.current) { setStatus("idle"); return; }
+    if (abortRef.current) { setStatus("idle"); return; }
+    if (!first) {
+      setStatus("idle");
+      toast.error("Voice unavailable — ELEVENLABS_API_KEY is not configured on the server.");
+      return;
+    }
 
     setStatus("playing");
 
