@@ -122,9 +122,13 @@ const TEMPLATES: Record<DeliverableType, { title: string; prompt: string }[]> = 
 
 export const extractProjectBrief = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { job_id: string; raw_brief: string }) =>
+  .inputValidator((data: { job_id: string; raw_brief: string; personal_request?: string }) =>
     z
-      .object({ job_id: z.string().uuid(), raw_brief: z.string().min(20).max(20000) })
+      .object({
+        job_id: z.string().uuid(),
+        raw_brief: z.string().min(20).max(20000),
+        personal_request: z.string().max(2000).optional(),
+      })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
@@ -158,6 +162,7 @@ export const extractProjectBrief = createServerFn({ method: "POST" })
         extracted_brief: parsed as unknown as never,
         deliverable_type: parsed.deliverable_type,
         status: "briefing",
+        personal_request: data.personal_request?.trim() || null,
       })
       .select("id")
       .single();
@@ -265,13 +270,18 @@ export const runDeeperResearch = createServerFn({ method: "POST" })
 
     const brief = (project as { extracted_brief?: ExtractedBrief | null }).extracted_brief;
     const keyQuestions = brief?.key_questions?.join("\n- ") ?? "(unspecified)";
+    const personalRequest = (project as { personal_request?: string | null }).personal_request;
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_PRO);
 
-    const system = `You are a research analyst. The candidate has a take-home assignment from ${company?.name ?? "the company"}: produce a ${DELIVERABLE_LABELS[(project.deliverable_type ?? "custom") as DeliverableType]} addressing these key questions:\n- ${keyQuestions}\n\nDraw on what you know about the company, the market, and the deliverable type. Be specific where you can; be honest about what you don't know rather than inventing facts. Cite specific market data, customer types, or technical details when you have them.`;
+    const personalLens = personalRequest
+      ? `\n\nCANDIDATE'S STRATEGIC LENS\n"${personalRequest}"\nSurface findings that directly connect to or support this angle. Where relevant, note how a finding can be framed through this lens in the final deliverable.`
+      : "";
+
+    const system = `You are a research analyst. The candidate has a take-home assignment from ${company?.name ?? "the company"}: produce a ${DELIVERABLE_LABELS[(project.deliverable_type ?? "custom") as DeliverableType]} addressing these key questions:\n- ${keyQuestions}\n\nDraw on what you know about the company, the market, and the deliverable type. Be specific where you can; be honest about what you don't know rather than inventing facts. Cite specific market data, customer types, or technical details when you have them.${personalLens}`;
 
     const researchJsonShape = `{"findings":[{"topic":"string","summary":"string","key_facts":["string"],"implications_for_deliverable":"string"}],"open_questions":["string"]}`;
 
@@ -311,6 +321,8 @@ export const generateOutline = createServerFn({ method: "POST" })
     const dt = (project.deliverable_type ?? "custom") as DeliverableType;
     const skeleton = TEMPLATES[dt];
 
+    const personalRequest = (project as { personal_request?: string | null }).personal_request;
+
     let outline: OutlineSection[];
     if (dt === "custom") {
       // Ask AI to generate sections from the brief
@@ -322,9 +334,12 @@ export const generateOutline = createServerFn({ method: "POST" })
       const OutlineSectionsSchema = z.object({
         sections: z.array(z.object({ title: z.string(), prompt: z.string() })),
       });
+      const personalLens = personalRequest
+        ? `\n\nCANDIDATE'S STRATEGIC LENS: "${personalRequest}"\nStructure the outline so it naturally explores and demonstrates this angle.`
+        : "";
       const { text: outlineText } = await generateText({
         model,
-        system: `Given a take-home brief, propose 5-8 logical sections for the deliverable. Each has a short title and a 1-sentence prompt describing what should go in it.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${outlineJsonShape}`,
+        system: `Given a take-home brief, propose 5-8 logical sections for the deliverable. Each has a short title and a 1-sentence prompt describing what should go in it.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${outlineJsonShape}${personalLens}`,
         prompt: `Brief: ${(project as { brief?: string }).brief ?? ""}`,
       });
       const outlineOutput = OutlineSectionsSchema.parse(JSON.parse(extractJsonText(outlineText)));
@@ -349,6 +364,24 @@ export const generateOutline = createServerFn({ method: "POST" })
       .eq("id", project.id);
 
     return outline;
+  });
+
+export const updatePersonalRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { project_id: string; personal_request: string }) =>
+    z
+      .object({ project_id: z.string().uuid(), personal_request: z.string().max(2000) })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("projects")
+      .update({ personal_request: data.personal_request.trim() || null })
+      .eq("id", data.project_id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const updateOutline = createServerFn({ method: "POST" })
@@ -425,6 +458,7 @@ export const draftSection = createServerFn({ method: "POST" })
       : { data: null };
 
     const research = (project as { research_notes?: ResearchNotes | null }).research_notes;
+    const personalRequest = (project as { personal_request?: string | null }).personal_request;
     const otherSections = outline
       .filter((s) => s.id !== data.section_id && s.content)
       .map((s) => `${s.title}:\n${s.content}`)
@@ -450,13 +484,17 @@ export const draftSection = createServerFn({ method: "POST" })
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(MODEL_PRO);
 
+    const personalLens = personalRequest
+      ? `\nCANDIDATE'S STRATEGIC LENS\n"${personalRequest}"\nWeave this angle naturally into the section — let it inform the framing, examples chosen, and recommendations made. Don't force it artificially, but where it fits, make it shine.\n`
+      : "";
+
     const system = `You are an expert co-writer producing a section of a take-home deliverable. The deliverable is a ${DELIVERABLE_LABELS[(project.deliverable_type ?? "custom") as DeliverableType]} for ${company?.name ?? "a company"} (role: ${job?.title ?? "unspecified"}).
 
 CANDIDATE
 Headline: ${profile?.headline ?? "(unknown)"}
 Domain: ${profile?.domain ?? "(unknown)"}
 Superpowers: ${profile?.superpowers ?? "(none provided)"}
-
+${personalLens}
 SECTION
 Title: ${section.title}
 Prompt: ${section.prompt}

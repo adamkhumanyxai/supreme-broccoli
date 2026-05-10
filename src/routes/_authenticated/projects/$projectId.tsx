@@ -7,6 +7,7 @@ import {
   runDeeperResearch,
   generateOutline,
   updateOutline,
+  updatePersonalRequest,
   draftSection,
   exportProject,
   DELIVERABLE_LABELS,
@@ -26,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, Sparkles, Search, FileText, Download, Wand2, Minimize2, Maximize2, MessagesSquare } from "lucide-react";
+import { Loader2, Sparkles, Search, FileText, Download, Wand2, Minimize2, Maximize2, MessagesSquare, Lightbulb, Pencil, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +67,7 @@ function ProjectWorkspace() {
     research_notes: ResearchNotes | null;
     deliverable_type: DeliverableType;
     status: string | null;
+    personal_request: string | null;
   };
 
   return (
@@ -92,7 +94,7 @@ function ProjectWorkspace() {
         </TabsList>
 
         <TabsContent value="brief">
-          <BriefTab project={project} />
+          <BriefTab project={project} onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })} />
         </TabsContent>
         <TabsContent value="research">
           <ResearchTab projectId={projectId} project={project} onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })} />
@@ -108,10 +110,90 @@ function ProjectWorkspace() {
   );
 }
 
-function BriefTab({ project }: { project: { brief: string; extracted_brief: ExtractedBrief | null } }) {
+function BriefTab({
+  project,
+  onUpdate,
+}: {
+  project: { id: string; brief: string; extracted_brief: ExtractedBrief | null; personal_request: string | null };
+  onUpdate: () => void;
+}) {
+  const saveRequest = useServerFn(updatePersonalRequest);
   const eb = project.extracted_brief;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(project.personal_request ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await saveRequest({ data: { project_id: project.id, personal_request: draft } });
+      onUpdate();
+      setEditing(false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleCancel() {
+    setDraft(project.personal_request ?? "");
+    setEditing(false);
+  }
+
   return (
     <div className="space-y-6">
+      {/* Personal request — top of the brief, always visible */}
+      <div className="editorial-card space-y-3 border-primary/20 p-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Your angle</p>
+          </div>
+          {!editing && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => { setDraft(project.personal_request ?? ""); setEditing(true); }}>
+              <Pencil className="mr-1.5 h-3 w-3" /> {project.personal_request ? "Edit" : "Add angle"}
+            </Button>
+          )}
+        </div>
+
+        {editing ? (
+          <div className="space-y-3">
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={4}
+              placeholder="e.g. I want to leverage Challenger Sales methodology throughout — position us as challenging the status quo."
+              className="text-sm"
+              disabled={saving}
+              autoFocus
+            />
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Check className="mr-1.5 h-3 w-3" />}
+                Save
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}>
+                <X className="mr-1.5 h-3 w-3" /> Cancel
+              </Button>
+            </div>
+          </div>
+        ) : project.personal_request ? (
+          <p className="text-sm leading-relaxed text-foreground">{project.personal_request}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">
+            No angle set. Add one to shape the AI's research, outline, and drafting.
+          </p>
+        )}
+
+        {!editing && project.personal_request && (
+          <p className="text-xs text-muted-foreground">
+            This lens is applied across all research, outline generation, and section drafting.
+          </p>
+        )}
+      </div>
+
+      {/* Extracted brief metadata */}
       {eb && (
         <div className="editorial-card space-y-4 p-6">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Extracted</p>
