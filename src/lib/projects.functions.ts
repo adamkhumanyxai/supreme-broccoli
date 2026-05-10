@@ -577,3 +577,19 @@ export const exportProject = createServerFn({ method: "POST" })
 
     return { artifact_id: row?.id, project };
   });
+
+export const deleteProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { project_id: string }) =>
+    z.object({ project_id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", data.project_id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

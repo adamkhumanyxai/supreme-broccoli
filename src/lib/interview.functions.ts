@@ -547,3 +547,19 @@ export const getSession = createServerFn({ method: "GET" })
       company,
     };
   });
+
+export const deleteSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { session_id: string }) =>
+    z.object({ session_id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("interview_sessions")
+      .delete()
+      .eq("id", data.session_id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
