@@ -241,10 +241,12 @@ export const interviewTurn = createServerFn({ method: "POST" })
 
     const system = await buildSystemPrompt(supabase, userId, session as SessionRow);
 
-    const messages = transcript.map((t) => ({
-      role: t.role === "interviewer" ? ("assistant" as const) : ("user" as const),
-      content: t.content,
-    }));
+    const messages = transcript
+      .filter((t) => t.content && t.content.trim().length > 0)
+      .map((t) => ({
+        role: t.role === "interviewer" ? ("assistant" as const) : ("user" as const),
+        content: t.content,
+      }));
 
     let isOpening = false;
     if (messages.length === 0) {

@@ -102,7 +102,10 @@ async function handler({ request }: { request: Request }) {
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: "system", content: systemInstruction }, ...messages],
+      messages: [
+        ...(systemInstruction.trim() ? [{ role: "system", content: systemInstruction }] : []),
+        ...messages.filter((m) => m.content && m.content.trim().length > 0),
+      ],
       max_tokens: 350,
     }),
   });
