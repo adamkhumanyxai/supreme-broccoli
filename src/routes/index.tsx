@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,12 @@ import { Wordmark } from "@/components/wordmark";
 import { Compass, MessagesSquare, FolderKanban, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  // Landing page hidden for now — send everyone straight into the app.
+  // The `_authenticated` layout still redirects to /auth when there's no session.
+  // To restore the marketing page later, delete this `beforeLoad`.
+  beforeLoad: () => {
+    throw redirect({ to: "/dashboard" });
+  },
   component: Landing,
 });
 
