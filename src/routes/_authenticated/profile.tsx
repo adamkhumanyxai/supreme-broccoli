@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { AboutYouCard } from "@/components/profile/AboutYouCard";
 import { ResumeCard } from "@/components/profile/ResumeCard";
 import { SuperpowersCard } from "@/components/profile/SuperpowersCard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: ProfilePage,
@@ -41,7 +42,17 @@ function ProfilePage() {
   }, [user]);
 
   if (loading || !user) {
-    return <div className="text-sm text-muted-foreground">Loading…</div>;
+    return (
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-4 w-80" />
+        </div>
+        <Skeleton className="h-48 w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-lg" />
+      </div>
+    );
   }
 
   const update = (patch: Partial<FullProfile>) =>

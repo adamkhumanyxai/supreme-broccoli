@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { profileCompleteness, type ProfileRow } from "@/lib/profile";
 import { ArrowRight, Plus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { listSessions, SCORE_DIMENSIONS, type Debrief } from "@/lib/interview.functions";
 import { listJobs } from "@/lib/jobs.functions";
 import { JOB_STATUSES } from "@/components/jobs/StatusPill";
@@ -105,12 +106,12 @@ function Dashboard() {
       });
   }, [user]);
 
-  const { data: sessions = [] } = useQuery({
+  const { data: sessions = [], isLoading: sessionsLoading } = useQuery({
     queryKey: ["sessions"],
     queryFn: () => listSessions(),
   });
 
-  const { data: jobs = [] } = useQuery({
+  const { data: jobs = [], isLoading: jobsLoading } = useQuery({
     queryKey: ["jobs"],
     queryFn: () => listJobs(),
   });
@@ -174,21 +175,25 @@ function Dashboard() {
       </div>
 
       {/* Profile completeness */}
-      <Link to="/profile" className="editorial-card block p-6 group">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Profile</p>
-            <h3 className="mt-2 font-serif text-xl text-foreground">
-              Profile completeness: {loading ? "…" : `${pct}%`}
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              The more we know about you, the more personalized your prep becomes.
-            </p>
+      {loading ? (
+        <Skeleton className="h-[100px] w-full rounded-lg" />
+      ) : (
+        <Link to="/profile" className="editorial-card block p-6 group">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Profile</p>
+              <h3 className="mt-2 font-serif text-xl text-foreground">
+                Profile completeness: {`${pct}%`}
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                The more we know about you, the more personalized your prep becomes.
+              </p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
           </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-        </div>
-        <Progress value={pct} className="mt-5 h-1.5" />
-      </Link>
+          <Progress value={pct} className="mt-5 h-1.5" />
+        </Link>
+      )}
 
       {/* Section 1: Recent mock sessions */}
       <div className="space-y-4">
@@ -199,7 +204,13 @@ function Dashboard() {
           </Link>
         </div>
 
-        {recentSessions.length === 0 ? (
+        {sessionsLoading ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-28 w-full rounded-lg" />
+            <Skeleton className="h-28 w-full rounded-lg" />
+            <Skeleton className="h-28 w-full rounded-lg" />
+          </div>
+        ) : recentSessions.length === 0 ? (
           <div className="editorial-card flex flex-col items-center gap-4 p-8 text-center">
             <p className="text-muted-foreground">No completed sessions yet.</p>
             <Button variant="outline" onClick={() => navigate({ to: "/jobs" })}>
@@ -224,7 +235,9 @@ function Dashboard() {
           </Link>
         </div>
 
-        {jobs.length === 0 ? (
+        {jobsLoading ? (
+          <Skeleton className="h-16 w-full rounded-lg" />
+        ) : jobs.length === 0 ? (
           <div className="editorial-card flex flex-col items-center gap-4 p-8 text-center">
             <p className="text-muted-foreground">No jobs added yet. Start by adding a job.</p>
             <Button onClick={() => navigate({ to: "/jobs/new" })}>

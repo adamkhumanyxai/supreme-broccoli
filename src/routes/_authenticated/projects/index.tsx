@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { FolderKanban, Trash2, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -58,7 +59,13 @@ function AllProjects() {
         </p>
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && (
+        <div className="grid gap-3 md:grid-cols-2">
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+        </div>
+      )}
 
       {!isLoading && projects.length === 0 && (
         <div className="editorial-card p-10 text-center">

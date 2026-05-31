@@ -29,6 +29,19 @@ function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
+    // Dev-mode passwordless bypass: accept any password and sign in locally.
+    const devBypass = import.meta.env.DEV || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"));
+    if (devBypass) {
+      setSubmitting(true);
+      try {
+        localStorage.setItem("dev_auth_email", email);
+        toast.success("Signed in (dev bypass).");
+        navigate({ to: "/dashboard" });
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -51,9 +64,25 @@ function AuthPage() {
     }
   };
 
+  async function handleForgotPassword() {
+    if (!email) {
+      toast.error("Enter your email address first.");
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/auth",
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Password reset email sent — check your inbox.");
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.08),transparent)]" />
+      <div className="relative w-full max-w-md">
         <div className="mb-10 flex justify-center">
           <Wordmark className="text-2xl" />
         </div>
@@ -63,8 +92,8 @@ function AuthPage() {
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
-              ? "Use your email and password to continue."
-              : "Create an account with email and password."}
+              ? "Enter your credentials to access your account."
+              : "Get started with your personal interview prep workspace."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -93,6 +122,17 @@ function AuthPage() {
                 minLength={8}
                 className="h-11"
               />
+              {mode === "signin" && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
             </div>
             <Button type="submit" className="w-full h-11" disabled={submitting}>
               {submitting

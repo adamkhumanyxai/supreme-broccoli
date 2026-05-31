@@ -22,7 +22,6 @@ import {
   Briefcase,
   MessagesSquare,
   FolderKanban,
-  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -30,17 +29,18 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 type NavItem = {
-  to: "/dashboard" | "/jobs" | "/sessions" | "/projects" | "/profile" | "/settings" | "/demo-interview";
+  to: "/dashboard" | "/jobs" | "/sessions" | "/projects" | "/profile" | "/settings";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
 };
-const NAV: NavItem[] = [
+const NAV_PRIMARY: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/jobs", label: "Jobs", icon: Briefcase },
   { to: "/sessions", label: "Sessions", icon: MessagesSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/demo-interview", label: "Demo", icon: Sparkles, exact: true },
+];
+const NAV_SECONDARY: NavItem[] = [
   { to: "/profile", label: "Profile", icon: UserIcon },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
@@ -53,7 +53,6 @@ function PageTitle() {
     "/jobs/new": "New job",
     "/sessions": "Sessions",
     "/projects": "Projects",
-    "/demo-interview": "Demo Interview",
     "/profile": "Profile",
     "/settings": "Settings",
     "/onboarding": "Welcome",
@@ -69,26 +68,29 @@ function PageTitle() {
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const renderItem = ({ to, label, icon: Icon, exact }: NavItem) => {
+    const active = exact ? path === to : path.startsWith(to);
+    return (
+      <Link
+        key={to}
+        to={to}
+        onClick={onNavigate}
+        className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+          active
+            ? "bg-accent text-foreground"
+            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+        }`}
+      >
+        <Icon className="h-4 w-4" />
+        {label}
+      </Link>
+    );
+  };
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.map(({ to, label, icon: Icon, exact }) => {
-        const active = exact ? path === to : path.startsWith(to);
-        return (
-          <Link
-            key={to}
-            to={to}
-            onClick={onNavigate}
-            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-              active
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Link>
-        );
-      })}
+      {NAV_PRIMARY.map(renderItem)}
+      <hr className="border-border my-1" />
+      {NAV_SECONDARY.map(renderItem)}
     </nav>
   );
 }
@@ -182,8 +184,11 @@ function AuthenticatedLayout() {
 
   if (loading || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-        Loading…
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        </div>
       </div>
     );
   }

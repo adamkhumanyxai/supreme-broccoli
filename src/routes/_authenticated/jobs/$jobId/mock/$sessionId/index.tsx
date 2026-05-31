@@ -53,7 +53,12 @@ function LiveInterview() {
   });
 
   if (isLoading || !data) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>;
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+        <p className="text-xs text-muted-foreground">Setting up your interview…</p>
+      </div>
+    );
   }
 
   if (data.session.status === "completed") {

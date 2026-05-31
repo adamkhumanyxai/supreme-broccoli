@@ -6,6 +6,7 @@ import { DOSSIER_SECTIONS, type Dossier } from "@/lib/insights.functions";
 import { DossierSection } from "@/components/jobs/DossierSection";
 import { EmployerScoreCard } from "@/components/jobs/EmployerScoreCard";
 import { ChevronLeft } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import {
   Accordion,
@@ -43,7 +44,12 @@ function HistoryPage() {
         </p>
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && (
+        <div className="space-y-3">
+          <Skeleton className="h-32 w-full rounded-lg" />
+          <Skeleton className="h-32 w-full rounded-lg" />
+        </div>
+      )}
 
       {data && data.length === 0 && (
         <p className="text-sm text-muted-foreground">No history yet.</p>

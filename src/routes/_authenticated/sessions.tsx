@@ -30,6 +30,7 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { MessagesSquare, Mic, Trash2, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/sessions")({
@@ -75,7 +76,19 @@ function SessionsList() {
     }
   }
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (isLoading) return (
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-9 w-52" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+      <Skeleton className="h-48 w-full rounded-lg" />
+    </div>
+  );
   const sessions = data ?? [];
 
   if (sessions.length === 0) {

@@ -46,7 +46,6 @@ function Settings() {
         <TabsList>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="privacy">Privacy &amp; Data</TabsTrigger>
-          <TabsTrigger value="profile-link">Profile</TabsTrigger>
           <TabsTrigger value="about">About</TabsTrigger>
         </TabsList>
 
@@ -55,9 +54,6 @@ function Settings() {
         </TabsContent>
         <TabsContent value="privacy">
           <PrivacyTab />
-        </TabsContent>
-        <TabsContent value="profile-link">
-          <ProfileLinkTab />
         </TabsContent>
         <TabsContent value="about">
           <AboutTab />
@@ -205,13 +201,16 @@ function PrivacyTab() {
               value={trDays}
               onChange={(e) => setTrDays(parseInt(e.target.value || "365", 10))}
             />
+            <p className="text-xs text-muted-foreground">
+              Transcripts auto-delete after this many days.
+            </p>
           </div>
         </div>
         <div className="flex items-center justify-between rounded-md border border-border p-3">
           <div>
             <p className="text-sm text-foreground">Email notifications</p>
             <p className="text-xs text-muted-foreground">
-              Currently unused — toggle for when we add them.
+              Receive a summary after each mock interview session.
             </p>
           </div>
           <Switch checked={emails} onCheckedChange={setEmails} />
@@ -262,7 +261,7 @@ function PrivacyTab() {
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}
               placeholder={user?.email ?? ""}
-              className="my-3"
+              className="my-3 font-mono"
             />
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -281,28 +280,14 @@ function PrivacyTab() {
   );
 }
 
-function ProfileLinkTab() {
-  return (
-    <div className="editorial-card p-6">
-      <p className="text-sm text-muted-foreground">
-        Profile editing happens at{" "}
-        <Link to="/profile" className="text-primary hover:underline">
-          Profile
-        </Link>
-        .
-      </p>
-    </div>
-  );
-}
-
 function AboutTab() {
   return (
     <div className="editorial-card space-y-3 p-6">
       <p className="text-xs uppercase tracking-wider text-muted-foreground">About</p>
-      <p className="text-sm text-foreground">Interview Compass · v0.1</p>
+      <p className="text-sm text-foreground">Interview Compass</p>
       <p className="text-sm text-muted-foreground">
-        Built for personal interview prep. Powered by Google Gemini via the Lovable AI Gateway, on
-        Supabase + TanStack Start.
+        Your personal command center for interview preparation — company research, mock interviews,
+        and take-home project support.
       </p>
       <Link to="/privacy" className="inline-block text-sm text-primary hover:underline">
         Privacy policy →

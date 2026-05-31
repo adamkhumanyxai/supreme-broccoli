@@ -77,9 +77,10 @@ function NewJob() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h2 className="font-serif text-3xl text-foreground">New job</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Paste a job posting URL or the full description. We'll extract the details and generate a tailored dossier.
+        <p className="text-sm text-muted-foreground">Jobs</p>
+        <h2 className="mt-1 font-serif text-3xl text-foreground">Add a new role</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Paste a job posting URL or the full description. We'll extract the details and kick off a tailored company dossier.
         </p>
       </div>
 

@@ -127,7 +127,24 @@ function JobDetail() {
     }
   }
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (isLoading) return (
+    <div className="space-y-8">
+      <div className="flex items-start gap-4">
+        <Skeleton className="h-14 w-14 rounded-lg" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+      </div>
+      {[1, 2, 3].map((n) => (
+        <div key={n} className="editorial-card space-y-3 p-6">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
+        </div>
+      ))}
+    </div>
+  );
   if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
   if (!data) return null;
 

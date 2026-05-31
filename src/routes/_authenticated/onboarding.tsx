@@ -9,6 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DOMAIN_OPTIONS } from "@/lib/profile";
 import { toast } from "sonner";
 import { Loader2, ArrowRight } from "lucide-react";
@@ -157,18 +164,18 @@ function Onboarding() {
             </div>
             <div className="space-y-1.5">
               <Label>Domain</Label>
-              <select
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Pick one…</option>
-                {DOMAIN_OPTIONS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={domain} onValueChange={setDomain}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pick your domain…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DOMAIN_OPTIONS.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </section>
