@@ -195,31 +195,31 @@ function MockNew() {
         </div>
       </section>
 
-      {(voiceAvailable === true || voiceAvailable === null) && (
-        <section className="space-y-3">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mode</Label>
-          <div className="editorial-card flex items-start justify-between gap-4 p-4">
-            <div className="flex items-start gap-3">
-              <Mic className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <div>
-                <p className="font-medium text-foreground">Voice mode</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {!voiceSupported
-                    ? "Your browser doesn't support WebRTC. Use Chrome, Edge, or Firefox."
-                    : voiceAvailable === null
-                    ? "Checking availability…"
-                    : "AI voice with Australian accent via ElevenLabs. Speak naturally — the interviewer listens and responds."}
-                </p>
-              </div>
+      <section className="space-y-3">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mode</Label>
+        <div className="editorial-card flex items-start justify-between gap-4 p-4">
+          <div className="flex items-start gap-3">
+            <Mic className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div>
+              <p className="font-medium text-foreground">Voice mode</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {!voiceSupported
+                  ? "Your browser doesn't support WebRTC. Use Chrome, Edge, or Firefox."
+                  : voiceAvailable === null
+                  ? "Checking availability…"
+                  : voiceAvailable === false
+                  ? "Voice isn't configured on this deployment — the OpenAI and ElevenLabs API keys are missing. Ask your admin to add them. You can still run a full text interview below."
+                  : "AI voice with Australian accent via ElevenLabs. Speak naturally — the interviewer listens and responds."}
+              </p>
             </div>
-            <Switch
-              checked={voiceMode}
-              disabled={!voiceSupported || voiceAvailable === null}
-              onCheckedChange={setVoiceMode}
-            />
           </div>
-        </section>
-      )}
+          <Switch
+            checked={voiceMode}
+            disabled={!voiceSupported || voiceAvailable !== true}
+            onCheckedChange={setVoiceMode}
+          />
+        </div>
+      </section>
 
       <section className="space-y-3">
         <Label className="text-xs uppercase tracking-wider text-muted-foreground">Difficulty</Label>

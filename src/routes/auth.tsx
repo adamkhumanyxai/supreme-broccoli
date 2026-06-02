@@ -17,31 +17,51 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  // Detect the password-recovery redirect synchronously so we never bounce the
+  // user to the dashboard before they can set a new password.
+  const [mode, setMode] = useState<"signin" | "signup" | "recovery">(() =>
+    typeof window !== "undefined" && window.location.hash.includes("type=recovery")
+      ? "recovery"
+      : "signin",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // When the user follows a password-reset email, Supabase establishes a
+  // recovery session and fires PASSWORD_RECOVERY. Switch into recovery mode so
+  // they can set a new password instead of being bounced to the dashboard.
   useEffect(() => {
-    if (!loading && session) navigate({ to: "/dashboard" });
-  }, [session, loading, navigate]);
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setMode("recovery");
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!loading && session && mode !== "recovery") navigate({ to: "/dashboard" });
+  }, [session, loading, mode, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
-    // Dev-mode passwordless bypass: accept any password and sign in locally.
-    const devBypass = import.meta.env.DEV || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"));
-    if (devBypass) {
+
+    if (mode === "recovery") {
+      if (!password) return;
       setSubmitting(true);
       try {
-        localStorage.setItem("dev_auth_email", email);
-        toast.success("Signed in (dev bypass).");
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        toast.success("Password updated. You're signed in.");
         navigate({ to: "/dashboard" });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not update password.");
       } finally {
         setSubmitting(false);
       }
       return;
     }
+
+    if (!email || !password) return;
 
     setSubmitting(true);
     try {
@@ -88,30 +108,34 @@ function AuthPage() {
         </div>
         <div className="editorial-card p-8">
           <h1 className="font-serif text-2xl text-foreground">
-            {mode === "signin" ? "Sign in" : "Create account"}
+            {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Set a new password"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Enter your credentials to access your account."
-              : "Get started with your personal interview prep workspace."}
+              : mode === "signup"
+                ? "Get started with your personal interview prep workspace."
+                : "Choose a new password for your account."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+            {mode !== "recovery" && (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoFocus
+                  className="h-11"
+                />
+              </div>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoFocus
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{mode === "recovery" ? "New password" : "Password"}</Label>
               <Input
                 id="password"
                 type="password"
@@ -120,6 +144,7 @@ function AuthPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
+                autoFocus={mode === "recovery"}
                 className="h-11"
               />
               {mode === "signin" && (
@@ -138,13 +163,18 @@ function AuthPage() {
               {submitting
                 ? mode === "signin"
                   ? "Signing in…"
-                  : "Creating account…"
+                  : mode === "signup"
+                    ? "Creating account…"
+                    : "Updating password…"
                 : mode === "signin"
                   ? "Sign in"
-                  : "Create account"}
+                  : mode === "signup"
+                    ? "Create account"
+                    : "Update password"}
             </Button>
           </form>
 
+          {mode !== "recovery" && (
           <div className="mt-6 text-center text-sm text-muted-foreground">
             {mode === "signin" ? (
               <>
@@ -170,6 +200,7 @@ function AuthPage() {
               </>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

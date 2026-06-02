@@ -54,24 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
-
-      // Dev-mode fallback: if no Supabase session but a local dev email is present,
-      // create a lightweight mock session so the app treats the user as signed in.
-      const devBypass = import.meta.env.DEV || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"));
-      if (!data.session && devBypass && typeof window !== "undefined") {
-        const devEmail = localStorage.getItem("dev_auth_email");
-        if (devEmail) {
-          const mockSession = {
-            access_token: "dev-token",
-            token_type: "bearer",
-            expires_in: 0,
-            refresh_token: "dev-refresh",
-            user: { id: `dev-${devEmail}`, email: devEmail },
-          } as unknown as Session;
-          setSession(mockSession);
-          setLoading(false);
-        }
-      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);

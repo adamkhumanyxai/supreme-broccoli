@@ -11,9 +11,9 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
  *  - Switching the default model is an env-var change, no redeploy required
  *    if Vercel reads env vars dynamically (they do at runtime).
  *
- * Voice mode (Gemini Live) is NOT routed through OpenRouter — the Live API
- * uses a unique WebSocket protocol Google offers exclusively. Voice continues
- * to use GEMINI_API_KEY directly via @google/genai (in src/hooks/use-voice-interview.ts).
+ * Voice mode is NOT routed through this provider. It runs as its own pipeline
+ * in /api/interview-turn: OpenAI Whisper (STT) + OpenRouter (LLM) + ElevenLabs
+ * (TTS), driven client-side by src/hooks/use-voice-interview.ts.
  *
  * Usage at call sites:
  *   const provider = createAiProvider(process.env.OPENROUTER_API_KEY);

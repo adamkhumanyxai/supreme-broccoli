@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Play, RotateCcw, Sparkles } from "lucide-react";
+import { Play, Pause, Square, RotateCcw, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/demo-interview")({
   component: DemoInterview,
@@ -59,10 +59,19 @@ function DemoInterview() {
   const [visibleTurns, setVisibleTurns] = useState<number[]>([]);
   const [activeTurn, setActiveTurn] = useState<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const audioCacheRef = useRef<Map<number, string>>(new Map());
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef(false);
+  const pausedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Blocks the playback loop while paused (and bails out immediately if stopped).
+  const waitWhilePaused = useCallback(async () => {
+    while (pausedRef.current && !abortRef.current) {
+      await new Promise((r) => setTimeout(r, 150));
+    }
+  }, []);
 
   const getAudio = useCallback(async (index: number): Promise<string | null> => {
     if (audioCacheRef.current.has(index)) return audioCacheRef.current.get(index)!;
@@ -119,6 +128,7 @@ function DemoInterview() {
     setStatus("playing");
 
     for (let i = 0; i < SCRIPT.length; i++) {
+      await waitWhilePaused();
       if (abortRef.current) break;
 
       // Prefetch next turn in the background
@@ -137,6 +147,7 @@ function DemoInterview() {
         attempts++;
       }
 
+      await waitWhilePaused();
       if (b64 && !abortRef.current) {
         await playBase64(b64);
       }
@@ -157,13 +168,42 @@ function DemoInterview() {
     }
 
     if (!abortRef.current) setStatus("done");
-  }, [getAudio, playBase64]);
+  }, [getAudio, playBase64, waitWhilePaused]);
 
-  function replay() {
+  const pause = useCallback(() => {
+    pausedRef.current = true;
+    setIsPaused(true);
+    audioElRef.current?.pause();
+  }, []);
+
+  const resume = useCallback(() => {
+    pausedRef.current = false;
+    setIsPaused(false);
+    // Only resume the clip if we paused mid-playback (not during an inter-turn gap).
+    const el = audioElRef.current;
+    if (el && el.src && el.paused && !el.ended && el.currentTime < el.duration) {
+      el.play().catch(() => undefined);
+    }
+  }, []);
+
+  const stop = useCallback(() => {
     abortRef.current = true;
+    pausedRef.current = false;
+    setIsPaused(false);
+    if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current.src = ""; }
+    setStatus("idle");
+    setVisibleTurns([]);
+    setActiveTurn(null);
+    setIsAnimating(false);
+  }, []);
+
+  const replay = useCallback(() => {
+    abortRef.current = true;
+    pausedRef.current = false;
+    setIsPaused(false);
     if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current.src = ""; }
     setTimeout(() => runDemo(), 100);
-  }
+  }, [runDemo]);
 
   const interviewerLabel = "SC"; // Standard Corp
   const candidateLabel = "You";
@@ -196,7 +236,23 @@ function DemoInterview() {
             Preparing…
           </Button>
         )}
-        {(status === "playing" || status === "done") && (
+        {status === "playing" && (
+          <div className="flex shrink-0 items-center gap-2">
+            {isPaused ? (
+              <Button size="lg" onClick={resume}>
+                <Play className="mr-2 h-4 w-4" /> Resume
+              </Button>
+            ) : (
+              <Button size="lg" variant="outline" onClick={pause}>
+                <Pause className="mr-2 h-4 w-4" /> Pause
+              </Button>
+            )}
+            <Button size="lg" variant="outline" onClick={stop} aria-label="Stop demo">
+              <Square className="mr-2 h-4 w-4" /> Stop
+            </Button>
+          </div>
+        )}
+        {status === "done" && (
           <Button size="lg" variant="outline" onClick={replay} className="shrink-0">
             <RotateCcw className="mr-2 h-4 w-4" /> Replay
           </Button>
@@ -207,7 +263,7 @@ function DemoInterview() {
       <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-6 py-4">
         <div className="flex items-center gap-3">
           <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-sm font-medium text-primary transition-all ${
-            activeTurn !== null && SCRIPT[activeTurn]?.role === "interviewer" && isAnimating
+            activeTurn !== null && SCRIPT[activeTurn]?.role === "interviewer" && isAnimating && !isPaused
               ? "ring-2 ring-primary animate-pulse scale-105"
               : ""
           }`}>
@@ -222,7 +278,7 @@ function DemoInterview() {
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
               className={`h-full rounded-full bg-primary transition-all duration-100 ${
-                activeTurn !== null && isAnimating ? "animate-[level_0.4s_ease-in-out_infinite]" : ""
+                activeTurn !== null && isAnimating && !isPaused ? "animate-[level_0.4s_ease-in-out_infinite]" : ""
               }`}
               style={{ width: activeTurn !== null && isAnimating ? "60%" : "0%" }}
             />
@@ -234,7 +290,7 @@ function DemoInterview() {
             <p className="text-xs text-muted-foreground text-right">Candidate</p>
           </div>
           <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15 text-sm font-medium text-amber-600 dark:text-amber-400 transition-all ${
-            activeTurn !== null && SCRIPT[activeTurn]?.role === "candidate" && isAnimating
+            activeTurn !== null && SCRIPT[activeTurn]?.role === "candidate" && isAnimating && !isPaused
               ? "ring-2 ring-amber-500 animate-pulse scale-105"
               : ""
           }`}>
