@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyBearerToken } from "@/lib/verify-bearer";
 
 export const Route = createFileRoute("/api/demo-tts")({
   server: {
@@ -13,9 +14,13 @@ export const Route = createFileRoute("/api/demo-tts")({
  *  role === "interviewer" → ELEVENLABS_VOICE_ID (default: Bill, Australian male)
  *  role === "candidate"   → ELEVENLABS_DEMO_VOICE_ID (default: AGxqDIZpj4LgDVWBCgVP, voice clone)
  */
+// Hard cap on TTS input so the endpoint can't be abused to run up ElevenLabs
+// charges with huge payloads.
+const MAX_TTS_CHARS = 5000;
+
 async function handler({ request }: { request: Request }) {
-  const auth = request.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) {
+  const authed = await verifyBearerToken(request);
+  if (!authed) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -38,6 +43,9 @@ async function handler({ request }: { request: Request }) {
   }
 
   if (!text) return Response.json({ error: "text is required" }, { status: 400 });
+  if (text.length > MAX_TTS_CHARS) {
+    return Response.json({ error: "text too long" }, { status: 400 });
+  }
 
   const voiceId = role === "candidate" ? candidateVoiceId : interviewerVoiceId;
 

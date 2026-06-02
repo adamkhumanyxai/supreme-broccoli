@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyBearerToken } from "@/lib/verify-bearer";
 
 export const Route = createFileRoute("/api/interview-turn")({
   server: {
@@ -37,9 +38,10 @@ async function handler({ request }: { request: Request }) {
     return Response.json({ voice_available: !!(openaiKey && elevenKey && openrouterKey) });
   }
 
-  // Auth check
-  const auth = request.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) {
+  // Auth check — validate the JWT, not just the header shape, so this paid-API
+  // proxy can't be called anonymously.
+  const authed = await verifyBearerToken(request);
+  if (!authed) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

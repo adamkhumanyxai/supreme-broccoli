@@ -25,7 +25,15 @@ function installAuthFetch() {
           : input instanceof URL
             ? input.toString()
             : (input as Request).url;
-      const isLocal = url.startsWith("/") || url.startsWith(window.location.origin);
+      // Only attach the token to same-origin requests. Resolve against the
+      // current origin so protocol-relative URLs ("//evil.com") and absolute
+      // third-party URLs never receive the user's bearer token.
+      let isLocal = false;
+      try {
+        isLocal = new URL(url, window.location.origin).origin === window.location.origin;
+      } catch {
+        isLocal = false;
+      }
       if (isLocal) {
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token;

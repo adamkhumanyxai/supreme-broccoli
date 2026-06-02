@@ -57,7 +57,6 @@ function PageTitle() {
     "/profile": "Profile",
     "/settings": "Settings",
     "/onboarding": "Welcome",
-    "/admin/rls-test": "RLS test",
   };
   let title = map[path] ?? "";
   if (!title) {
