@@ -10,7 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DOMAIN_OPTIONS } from "@/lib/profile";
+import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+
+type UserDomain = Database["public"]["Enums"]["user_domain"];
 import { Loader2, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -55,7 +58,7 @@ function Onboarding() {
         // save About You
         await supabase
           .from("profiles")
-          .update({ full_name: fullName, headline, domain: domain || null })
+          .update({ full_name: fullName, headline, domain: (domain || null) as UserDomain | null })
           .eq("user_id", user.id);
         setStep(3);
       } else if (step === 3) {

@@ -281,6 +281,7 @@ export type Database = {
           last_export_format: string | null
           last_exported_at: string | null
           outline: Json | null
+          personal_request: string | null
           research_notes: Json | null
           status: string | null
           title: string | null
@@ -298,6 +299,7 @@ export type Database = {
           last_export_format?: string | null
           last_exported_at?: string | null
           outline?: Json | null
+          personal_request?: string | null
           research_notes?: Json | null
           status?: string | null
           title?: string | null
@@ -315,6 +317,7 @@ export type Database = {
           last_export_format?: string | null
           last_exported_at?: string | null
           outline?: Json | null
+          personal_request?: string | null
           research_notes?: Json | null
           status?: string | null
           title?: string | null

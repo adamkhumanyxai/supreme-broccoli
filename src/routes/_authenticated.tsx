@@ -163,17 +163,19 @@ function AuthenticatedLayout() {
       .select("onboarding_completed")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        // If row missing (signup trigger race) treat as not-onboarded and redirect to safely complete the wizard.
-        if (!data || !data.onboarding_completed) {
-          navigate({ to: "/onboarding" });
-        }
-        setOnboardingChecked(true);
-      })
-      .catch(() => {
-        if (!cancelled) setOnboardingChecked(true);
-      });
+      .then(
+        ({ data }) => {
+          if (cancelled) return;
+          // If row missing (signup trigger race) treat as not-onboarded and redirect to safely complete the wizard.
+          if (!data || !data.onboarding_completed) {
+            navigate({ to: "/onboarding" });
+          }
+          setOnboardingChecked(true);
+        },
+        () => {
+          if (!cancelled) setOnboardingChecked(true);
+        },
+      );
     return () => {
       cancelled = true;
     };

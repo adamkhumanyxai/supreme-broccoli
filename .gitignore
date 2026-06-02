@@ -24,6 +24,9 @@ dist-ssr
 .nitro
 *.local
 
+# Generated route tree (created by the TanStack Router plugin at dev/build)
+src/routeTree.gen.ts
+
 # Cloudflare leftovers (project deploys to Vercel; ignore in case of stray files)
 .wrangler/
 

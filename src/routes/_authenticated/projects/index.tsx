@@ -93,7 +93,7 @@ function AllProjects() {
             </Link>
             <button
               className="absolute right-2 top-2 rounded p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setPendingDelete({ id: p.id, title: p.title })}
+              onClick={() => setPendingDelete({ id: p.id, title: p.title ?? "Untitled project" })}
               title="Delete project"
             >
               <Trash2 className="h-3.5 w-3.5" />
