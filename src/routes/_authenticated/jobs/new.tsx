@@ -79,7 +79,8 @@ function NewJob() {
       <div>
         <h2 className="font-serif text-3xl text-foreground">New job</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Paste a job posting URL or the full description. We'll extract the details and generate a tailored dossier.
+          Paste a job posting URL or the full description. We'll extract the details and generate a
+          tailored dossier.
         </p>
       </div>
 
@@ -87,7 +88,9 @@ function NewJob() {
         <div className="editorial-card flex items-start gap-3 border-amber-900/40 bg-amber-950/20 p-4">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
           <div className="text-sm">
-            <p className="text-foreground">Set your domain to get a dossier tailored to your specialty.</p>
+            <p className="text-foreground">
+              Set your domain to get a dossier tailored to your specialty.
+            </p>
             <Link to="/profile" className="text-primary underline-offset-4 hover:underline">
               Update profile
             </Link>
@@ -159,22 +162,40 @@ function ParsedConfirm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Company">
-          <Input value={parsed.company_name ?? ""} onChange={(e) => patch("company_name", e.target.value)} />
+          <Input
+            value={parsed.company_name ?? ""}
+            onChange={(e) => patch("company_name", e.target.value)}
+          />
         </Field>
         <Field label="Website">
-          <Input value={parsed.company_website ?? ""} onChange={(e) => patch("company_website", e.target.value)} />
+          <Input
+            value={parsed.company_website ?? ""}
+            onChange={(e) => patch("company_website", e.target.value)}
+          />
         </Field>
         <Field label="Role title">
-          <Input value={parsed.role_title ?? ""} onChange={(e) => patch("role_title", e.target.value)} />
+          <Input
+            value={parsed.role_title ?? ""}
+            onChange={(e) => patch("role_title", e.target.value)}
+          />
         </Field>
         <Field label="Location">
-          <Input value={parsed.location ?? ""} onChange={(e) => patch("location", e.target.value)} />
+          <Input
+            value={parsed.location ?? ""}
+            onChange={(e) => patch("location", e.target.value)}
+          />
         </Field>
         <Field label="Compensation">
-          <Input value={parsed.comp_band ?? ""} onChange={(e) => patch("comp_band", e.target.value)} />
+          <Input
+            value={parsed.comp_band ?? ""}
+            onChange={(e) => patch("comp_band", e.target.value)}
+          />
         </Field>
         <Field label="Source URL">
-          <Input value={parsed.source_url ?? ""} onChange={(e) => patch("source_url", e.target.value)} />
+          <Input
+            value={parsed.source_url ?? ""}
+            onChange={(e) => patch("source_url", e.target.value)}
+          />
         </Field>
       </div>
 

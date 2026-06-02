@@ -40,7 +40,7 @@ const DossierSchema = z.object({
   business_model: z.string(),
   financials_trajectory: z.string(),
   employer_brand: EmployerBrandSchema.optional(), // structured card; absent on legacy dossiers
-  culture_values: z.string().optional(),           // legacy field; kept for history page compat
+  culture_values: z.string().optional(), // legacy field; kept for history page compat
   leadership: z.string(),
   recent_moves: z.string(),
   competitive_landscape: z.string(),
@@ -63,9 +63,7 @@ function bullets(arr: string[] | null | undefined): string {
 
 export const generateInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { job_id: string }) =>
-    z.object({ job_id: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: { job_id: string }) => z.object({ job_id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -141,7 +139,8 @@ Return ONLY valid JSON matching this exact structure:
       generateText({
         model: gateway(MODEL_ID),
         system: `${mainSystem}\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${mainJsonShape}`,
-        prompt: "Produce the dossier now. Each field should be 4-12 sentences (or a strong bulleted list) of substantive, specific content.",
+        prompt:
+          "Produce the dossier now. Each field should be 4-12 sentences (or a strong bulleted list) of substantive, specific content.",
       }),
       generateText({
         model: gateway(EMPLOYER_BRAND_MODEL),
@@ -193,7 +192,7 @@ Return ONLY valid JSON matching this exact structure:
         is_current: true,
         status: errorMsg ? "error" : "ready",
         generated_at: new Date().toISOString(),
-        dossier: (dossier as unknown) as never,
+        dossier: dossier as unknown as never,
         error: errorMsg,
       })
       .select("*")

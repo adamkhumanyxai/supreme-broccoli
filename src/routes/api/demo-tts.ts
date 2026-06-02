@@ -35,7 +35,7 @@ async function handler({ request }: { request: Request }) {
   let text: string;
   let role: string;
   try {
-    const body = await request.json() as { text: string; role: string };
+    const body = (await request.json()) as { text: string; role: string };
     text = body.text?.trim();
     role = body.role;
   } catch {

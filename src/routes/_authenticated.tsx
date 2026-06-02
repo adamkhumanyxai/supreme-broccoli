@@ -30,7 +30,14 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 type NavItem = {
-  to: "/dashboard" | "/jobs" | "/sessions" | "/projects" | "/profile" | "/settings" | "/demo-interview";
+  to:
+    | "/dashboard"
+    | "/jobs"
+    | "/sessions"
+    | "/projects"
+    | "/profile"
+    | "/settings"
+    | "/demo-interview";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;

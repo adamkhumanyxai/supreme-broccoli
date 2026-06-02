@@ -33,7 +33,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Download, RefreshCcw, AlertCircle, History, ExternalLink, MessagesSquare, FolderKanban, Trash2, Loader2 } from "lucide-react";
+import {
+  Download,
+  RefreshCcw,
+  AlertCircle,
+  History,
+  ExternalLink,
+  MessagesSquare,
+  FolderKanban,
+  Trash2,
+  Loader2,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -151,10 +161,7 @@ function JobDetail() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={job.status}
-            onValueChange={(v) => statusMutation.mutate(v as JobStatus)}
-          >
+          <Select value={job.status} onValueChange={(v) => statusMutation.mutate(v as JobStatus)}>
             <SelectTrigger className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
@@ -206,12 +213,18 @@ function JobDetail() {
         </div>
       </div>
 
-      <AlertDialog open={confirmDelete} onOpenChange={(o) => { if (!o && !deleting) setConfirmDelete(false); }}>
+      <AlertDialog
+        open={confirmDelete}
+        onOpenChange={(o) => {
+          if (!o && !deleting) setConfirmDelete(false);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this job?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{job.title}</strong> — along with its dossier, all mock sessions, and any projects — will be permanently removed. This can't be undone.
+              <strong>{job.title}</strong> — along with its dossier, all mock sessions, and any
+              projects — will be permanently removed. This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -277,10 +290,16 @@ function JobDetail() {
             DOSSIER_SECTIONS.map((s) => {
               if (s.key === "employer_brand") {
                 return dossier.employer_brand ? (
-                  <EmployerScoreCard key="employer_brand" id="employer_brand" brand={dossier.employer_brand} />
+                  <EmployerScoreCard
+                    key="employer_brand"
+                    id="employer_brand"
+                    brand={dossier.employer_brand}
+                  />
                 ) : null;
               }
-              const content = dossier[s.key as keyof Omit<Dossier, "employer_brand">] as string | undefined;
+              const content = dossier[s.key as keyof Omit<Dossier, "employer_brand">] as
+                | string
+                | undefined;
               return (
                 <DossierSection
                   key={s.key}
@@ -319,7 +338,10 @@ function JobDetail() {
 
 function employerBrandToMarkdown(eb: Dossier["employer_brand"]): string {
   if (!eb) return "_Employer score not available._";
-  const flags = eb.red_flags.length > 0 ? `\n**Watch out for:**\n${eb.red_flags.map((f) => `- ${f}`).join("\n")}` : "";
+  const flags =
+    eb.red_flags.length > 0
+      ? `\n**Watch out for:**\n${eb.red_flags.map((f) => `- ${f}`).join("\n")}`
+      : "";
   return [
     `**Score: ${eb.score.toFixed(1)}/10** — ${eb.score_rationale}`,
     "",
@@ -353,4 +375,3 @@ function downloadMarkdown(title: string, companyName: string | null | undefined,
   a.click();
   URL.revokeObjectURL(url);
 }
-

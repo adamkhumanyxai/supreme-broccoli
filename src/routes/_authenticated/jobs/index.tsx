@@ -135,7 +135,9 @@ function JobsList() {
                             </span>
                           )}
                           <span>•</span>
-                          <span>{formatDistanceToNow(new Date(j.updated_at), { addSuffix: true })}</span>
+                          <span>
+                            {formatDistanceToNow(new Date(j.updated_at), { addSuffix: true })}
+                          </span>
                         </div>
                       </div>
                     </Link>
@@ -153,12 +155,18 @@ function JobsList() {
           );
         })}
 
-      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o && !deleting) setPendingDelete(null); }}>
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o && !deleting) setPendingDelete(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this job?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{pendingDelete?.title}</strong> — along with its dossier, all mock sessions, and any projects — will be permanently removed. This can't be undone.
+              <strong>{pendingDelete?.title}</strong> — along with its dossier, all mock sessions,
+              and any projects — will be permanently removed. This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

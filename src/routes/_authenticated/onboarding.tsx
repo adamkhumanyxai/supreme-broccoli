@@ -12,9 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { DOMAIN_OPTIONS } from "@/lib/profile";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { Loader2, ArrowRight } from "lucide-react";
 
 type UserDomain = Database["public"]["Enums"]["user_domain"];
-import { Loader2, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   component: Onboarding,
@@ -108,10 +108,10 @@ function Onboarding() {
   }
 
   const canProceed =
-    (step === 1) ||
+    step === 1 ||
     (step === 2 && fullName.trim().length > 0 && headline.trim().length > 0 && domain.length > 0) ||
-    (step === 3) ||
-    (step === 4);
+    step === 3 ||
+    step === 4;
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">

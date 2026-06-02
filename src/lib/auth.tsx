@@ -9,7 +9,12 @@ type AuthCtx = {
   signOut: () => Promise<void>;
 };
 
-const Ctx = createContext<AuthCtx>({ session: null, user: null, loading: true, signOut: async () => {} });
+const Ctx = createContext<AuthCtx>({
+  session: null,
+  user: null,
+  loading: true,
+  signOut: async () => {},
+});
 
 // Patch window.fetch once so server-fn calls forward the Supabase access token.
 let fetchPatched = false;
@@ -38,7 +43,9 @@ function installAuthFetch() {
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token;
         if (token) {
-          const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
+          const headers = new Headers(
+            init?.headers || (input instanceof Request ? input.headers : undefined),
+          );
           if (!headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
           return origFetch(input, { ...(init || {}), headers });
         }

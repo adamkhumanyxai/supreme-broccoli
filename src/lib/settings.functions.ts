@@ -49,10 +49,7 @@ export const updateUserSettings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase
-      .from("user_settings")
-      .update(data)
-      .eq("user_id", userId);
+    const { error } = await supabase.from("user_settings").update(data).eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -106,9 +103,7 @@ export const accountDelete = createServerFn({ method: "POST" })
     // Delete storage objects in user's folder
     const { data: files } = await supabase.storage.from("user-files").list(userId, { limit: 1000 });
     if (files && files.length) {
-      await supabase.storage
-        .from("user-files")
-        .remove(files.map((f) => `${userId}/${f.name}`));
+      await supabase.storage.from("user-files").remove(files.map((f) => `${userId}/${f.name}`));
     }
     // Subfolders (sessions/, projects/) — list & remove
     for (const sub of ["sessions", "projects"]) {

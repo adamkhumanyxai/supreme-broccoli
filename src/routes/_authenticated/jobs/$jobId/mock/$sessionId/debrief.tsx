@@ -14,11 +14,7 @@ import {
   type Difficulty,
 } from "@/lib/interview.functions";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, Loader2, Star } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/jobs/$jobId/mock/$sessionId/debrief")({
@@ -68,7 +64,11 @@ function DebriefPage() {
   }
 
   async function rerun(sameSetup: boolean) {
-    const persona = (data!.session.persona ?? { title: "Hiring Manager", seniority: "", style: "" }) as Persona;
+    const persona = (data!.session.persona ?? {
+      title: "Hiring Manager",
+      seniority: "",
+      style: "",
+    }) as Persona;
     if (sameSetup) {
       const { session_id } = await start({
         data: {
@@ -90,7 +90,9 @@ function DebriefPage() {
 
   return (
     <div className="space-y-10">
-      <AudioPlayback audioPath={(data.session as { audio_url?: string | null }).audio_url ?? null} />
+      <AudioPlayback
+        audioPath={(data.session as { audio_url?: string | null }).audio_url ?? null}
+      />
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">Debrief</p>
         <div className="flex items-end gap-6">
@@ -192,10 +194,7 @@ function DebriefPage() {
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4 space-y-3">
           {data.session.transcript.map((t, i) => (
-            <div
-              key={i}
-              className="editorial-card p-4 text-sm"
-            >
+            <div key={i} className="editorial-card p-4 text-sm">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">
                 {t.role === "interviewer" ? "Interviewer" : "You"}
               </p>
@@ -204,8 +203,6 @@ function DebriefPage() {
           ))}
         </CollapsibleContent>
       </Collapsible>
-
-      
     </div>
   );
 }
@@ -224,9 +221,7 @@ function AudioPlayback({ audioPath }: { audioPath: string | null }) {
   if (!audioPath) return null;
   return (
     <div className="editorial-card p-4">
-      <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">
-        Voice recording
-      </p>
+      <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Voice recording</p>
       {url ? (
         <audio controls src={url} className="w-full" />
       ) : (

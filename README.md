@@ -30,17 +30,17 @@ App runs at `http://localhost:5173` by default.
 
 ### Required environment variables
 
-| Variable | Purpose | Where it goes |
-|---|---|---|
-| `VITE_SUPABASE_URL` | Supabase project URL (browser) | `.env` |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key (browser) | `.env` |
-| `VITE_SUPABASE_PROJECT_ID` | Supabase project ref | `.env` |
-| `SUPABASE_URL` | Same URL, server-side | `.env` |
-| `SUPABASE_PUBLISHABLE_KEY` | Same anon key, server-side | `.env` |
-| `OPENROUTER_API_KEY` | OpenRouter key — powers all text-mode AI calls | `.env` |
-| `OPENROUTER_MODEL` | (optional) default model id, e.g. `anthropic/claude-sonnet-4.5` | `.env` |
-| `OPENROUTER_MODEL_FAST` | (optional) cheap model for parsing tasks, e.g. `anthropic/claude-haiku-4.5` | `.env` |
-| `GEMINI_API_KEY` | (optional) Google Gemini key — only needed for voice-mode mock interviewer | `.env` |
+| Variable                        | Purpose                                                                     | Where it goes |
+| ------------------------------- | --------------------------------------------------------------------------- | ------------- |
+| `VITE_SUPABASE_URL`             | Supabase project URL (browser)                                              | `.env`        |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key (browser)                                                 | `.env`        |
+| `VITE_SUPABASE_PROJECT_ID`      | Supabase project ref                                                        | `.env`        |
+| `SUPABASE_URL`                  | Same URL, server-side                                                       | `.env`        |
+| `SUPABASE_PUBLISHABLE_KEY`      | Same anon key, server-side                                                  | `.env`        |
+| `OPENROUTER_API_KEY`            | OpenRouter key — powers all text-mode AI calls                              | `.env`        |
+| `OPENROUTER_MODEL`              | (optional) default model id, e.g. `anthropic/claude-sonnet-4.5`             | `.env`        |
+| `OPENROUTER_MODEL_FAST`         | (optional) cheap model for parsing tasks, e.g. `anthropic/claude-haiku-4.5` | `.env`        |
+| `GEMINI_API_KEY`                | (optional) Google Gemini key — only needed for voice-mode mock interviewer  | `.env`        |
 
 Without `OPENROUTER_API_KEY`, AI flows error. Without `GEMINI_API_KEY`, voice mode silently falls back to text mode (designed safety net).
 
@@ -55,6 +55,7 @@ supabase db push
 ```
 
 Migrations create:
+
 - Profiles, companies, jobs, insights, interview_sessions, projects, project_artifacts, user_settings, analytics_events
 - RLS policies on every user-data table (own-rows-only)
 - Storage bucket `user-files` with per-user folder isolation
@@ -76,15 +77,19 @@ Migrations create:
 ## Features
 
 ### Company Insights
+
 Paste a job description URL or text → AI generates a 10-section dossier with web grounding (Snapshot, Business Model, Financials, Culture, Leadership, Recent Moves, Competitive Landscape, Domain Context, Likely Themes, Smart Questions). Versioned, regenerable, exportable.
 
 ### Mock Interviewer
+
 Pick interview type (behavioral / role-specific / panel / executive / general), persona (adapts to your domain), difficulty, and duration. Run text or voice mode. Voice mode uses Gemini Live for real-time speech-to-speech with interruption handling. Get a brutally-honest rubric-scored debrief with specific transcript references.
 
 ### Project Builder
+
 Got a take-home? Paste the brief — AI extracts requirements, runs deeper research (with grounding), generates an outline matched to the deliverable type (30/60/90 plan, technical design doc, GTM plan, case study, etc.), and helps you draft each section. Export to PPTX, DOCX, or HTML.
 
 ### Polish
+
 Light/dark mode, public landing, onboarding wizard, settings page (data export, account delete, retention controls), `/admin/rls-test` for verifying user isolation, simple per-user analytics funnel.
 
 ---

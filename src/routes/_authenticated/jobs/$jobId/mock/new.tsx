@@ -3,7 +3,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { startInterview, setSessionMode, type InterviewType, type Difficulty, type Persona } from "@/lib/interview.functions";
+import {
+  startInterview,
+  setSessionMode,
+  type InterviewType,
+  type Difficulty,
+  type Persona,
+} from "@/lib/interview.functions";
 import { getPersonaSuggestions, INTERVIEW_TYPE_OPTIONS } from "@/lib/interview-personas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -196,30 +202,32 @@ function MockNew() {
       </section>
 
       <section className="space-y-3">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mode</Label>
-          <div className="editorial-card flex items-start justify-between gap-4 p-4">
-            <div className="flex items-start gap-3">
-              <Mic className={`mt-0.5 h-4 w-4 shrink-0 ${voiceAvailable === false ? "text-muted-foreground" : "text-primary"}`} />
-              <div>
-                <p className="font-medium text-foreground">Voice mode</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {!voiceSupported
-                    ? "Your browser doesn't support WebRTC. Use Chrome, Edge, or Firefox."
-                    : voiceAvailable === null
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mode</Label>
+        <div className="editorial-card flex items-start justify-between gap-4 p-4">
+          <div className="flex items-start gap-3">
+            <Mic
+              className={`mt-0.5 h-4 w-4 shrink-0 ${voiceAvailable === false ? "text-muted-foreground" : "text-primary"}`}
+            />
+            <div>
+              <p className="font-medium text-foreground">Voice mode</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {!voiceSupported
+                  ? "Your browser doesn't support WebRTC. Use Chrome, Edge, or Firefox."
+                  : voiceAvailable === null
                     ? "Checking availability…"
                     : voiceAvailable === false
-                    ? "Voice requires OPENAI_API_KEY and ELEVENLABS_API_KEY to be configured on the server."
-                    : "AI voice with Australian accent via ElevenLabs. Speak naturally — the interviewer listens and responds."}
-                </p>
-              </div>
+                      ? "Voice requires OPENAI_API_KEY and ELEVENLABS_API_KEY to be configured on the server."
+                      : "AI voice with Australian accent via ElevenLabs. Speak naturally — the interviewer listens and responds."}
+              </p>
             </div>
-            <Switch
-              checked={voiceMode}
-              disabled={!voiceSupported || voiceAvailable !== true}
-              onCheckedChange={setVoiceMode}
-            />
           </div>
-        </section>
+          <Switch
+            checked={voiceMode}
+            disabled={!voiceSupported || voiceAvailable !== true}
+            onCheckedChange={setVoiceMode}
+          />
+        </div>
+      </section>
 
       <section className="space-y-3">
         <Label className="text-xs uppercase tracking-wider text-muted-foreground">Difficulty</Label>

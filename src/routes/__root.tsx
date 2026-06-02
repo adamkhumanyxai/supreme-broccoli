@@ -70,7 +70,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Interview Compass" },
-      { name: "description", content: "AI-powered personal interview preparation — company intel, mock interviews, take-home help." },
+      {
+        name: "description",
+        content:
+          "AI-powered personal interview preparation — company intel, mock interviews, take-home help.",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

@@ -76,7 +76,9 @@ function DemoInterview() {
 
   const getAudio = useCallback(async (index: number): Promise<string | null> => {
     if (audioCacheRef.current.has(index)) return audioCacheRef.current.get(index)!;
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     const jwt = session?.access_token;
     if (!jwt) return null;
     try {
@@ -86,7 +88,7 @@ function DemoInterview() {
         body: JSON.stringify({ text: SCRIPT[index]!.text, role: SCRIPT[index]!.role }),
       });
       if (!res.ok) return null;
-      const { audio_b64 } = await res.json() as { audio_b64?: string };
+      const { audio_b64 } = (await res.json()) as { audio_b64?: string };
       if (audio_b64) audioCacheRef.current.set(index, audio_b64);
       return audio_b64 ?? null;
     } catch {
@@ -109,8 +111,14 @@ function DemoInterview() {
       }
       const el = audioElRef.current;
       el.src = url;
-      el.onended = () => { URL.revokeObjectURL(url); resolve(); };
-      el.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+      el.onended = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      el.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
       el.play().catch(() => resolve());
     });
   }, []);
@@ -124,7 +132,10 @@ function DemoInterview() {
 
     // Preload first two turns before starting
     const [first] = await Promise.all([getAudio(0), getAudio(1)]);
-    if (abortRef.current) { setStatus("idle"); return; }
+    if (abortRef.current) {
+      setStatus("idle");
+      return;
+    }
     if (!first) {
       setStatus("idle");
       toast.error("Voice unavailable — ELEVENLABS_API_KEY is not configured on the server.");
@@ -196,7 +207,10 @@ function DemoInterview() {
     abortRef.current = true;
     pausedRef.current = false;
     setIsPaused(false);
-    if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current.src = ""; }
+    if (audioElRef.current) {
+      audioElRef.current.pause();
+      audioElRef.current.src = "";
+    }
     setStatus("idle");
     setVisibleTurns([]);
     setActiveTurn(null);
@@ -207,7 +221,10 @@ function DemoInterview() {
     abortRef.current = true;
     pausedRef.current = false;
     setIsPaused(false);
-    if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current.src = ""; }
+    if (audioElRef.current) {
+      audioElRef.current.pause();
+      audioElRef.current.src = "";
+    }
     setTimeout(() => runDemo(), 100);
   }, [runDemo]);
 
@@ -224,7 +241,8 @@ function DemoInterview() {
             <h2 className="font-serif text-2xl text-foreground">Demo Interview</h2>
           </div>
           <p className="mt-2 text-sm text-muted-foreground max-w-lg">
-            This is how the pros do it. Watch a model interview — Bill asks, you answer. Each response shows exactly why it works.
+            This is how the pros do it. Watch a model interview — Bill asks, you answer. Each
+            response shows exactly why it works.
           </p>
         </div>
         {status === "idle" && (
@@ -268,11 +286,16 @@ function DemoInterview() {
       {/* Speakers */}
       <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-sm font-medium text-primary transition-all ${
-            activeTurn !== null && SCRIPT[activeTurn]?.role === "interviewer" && isAnimating && !isPaused
-              ? "ring-2 ring-primary animate-pulse scale-105"
-              : ""
-          }`}>
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-sm font-medium text-primary transition-all ${
+              activeTurn !== null &&
+              SCRIPT[activeTurn]?.role === "interviewer" &&
+              isAnimating &&
+              !isPaused
+                ? "ring-2 ring-primary animate-pulse scale-105"
+                : ""
+            }`}
+          >
             {interviewerLabel}
           </div>
           <div>
@@ -284,7 +307,9 @@ function DemoInterview() {
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
               className={`h-full rounded-full bg-primary transition-all duration-100 ${
-                activeTurn !== null && isAnimating && !isPaused ? "animate-[level_0.4s_ease-in-out_infinite]" : ""
+                activeTurn !== null && isAnimating && !isPaused
+                  ? "animate-[level_0.4s_ease-in-out_infinite]"
+                  : ""
               }`}
               style={{ width: activeTurn !== null && isAnimating ? "60%" : "0%" }}
             />
@@ -295,11 +320,16 @@ function DemoInterview() {
             <p className="text-sm font-medium text-foreground text-right">You</p>
             <p className="text-xs text-muted-foreground text-right">Candidate</p>
           </div>
-          <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15 text-sm font-medium text-amber-600 dark:text-amber-400 transition-all ${
-            activeTurn !== null && SCRIPT[activeTurn]?.role === "candidate" && isAnimating && !isPaused
-              ? "ring-2 ring-amber-500 animate-pulse scale-105"
-              : ""
-          }`}>
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15 text-sm font-medium text-amber-600 dark:text-amber-400 transition-all ${
+              activeTurn !== null &&
+              SCRIPT[activeTurn]?.role === "candidate" &&
+              isAnimating &&
+              !isPaused
+                ? "ring-2 ring-amber-500 animate-pulse scale-105"
+                : ""
+            }`}
+          >
             {candidateLabel}
           </div>
         </div>
@@ -313,19 +343,25 @@ function DemoInterview() {
             const turn = SCRIPT[i]!;
             return (
               <div key={i} className="space-y-2">
-                <div className={`flex gap-3 ${turn.role === "candidate" ? "flex-row-reverse" : ""}`}>
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-                    turn.role === "interviewer"
-                      ? "bg-primary/15 text-primary"
-                      : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                  }`}>
+                <div
+                  className={`flex gap-3 ${turn.role === "candidate" ? "flex-row-reverse" : ""}`}
+                >
+                  <div
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
+                      turn.role === "interviewer"
+                        ? "bg-primary/15 text-primary"
+                        : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                    }`}
+                  >
                     {turn.role === "interviewer" ? interviewerLabel : candidateLabel}
                   </div>
-                  <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    turn.role === "candidate"
-                      ? "bg-amber-500/10 text-foreground border border-amber-500/20"
-                      : "bg-card text-foreground border border-border"
-                  }`}>
+                  <div
+                    className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      turn.role === "candidate"
+                        ? "bg-amber-500/10 text-foreground border border-amber-500/20"
+                        : "bg-card text-foreground border border-border"
+                    }`}
+                  >
                     <span className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                       {turn.role === "interviewer" ? "Bill" : "You"}
                     </span>
@@ -347,19 +383,25 @@ function DemoInterview() {
 
           {/* Currently speaking turn (no tip yet) */}
           {activeTurn !== null && (
-            <div className={`flex gap-3 ${SCRIPT[activeTurn]!.role === "candidate" ? "flex-row-reverse" : ""}`}>
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-                SCRIPT[activeTurn]!.role === "interviewer"
-                  ? "bg-primary/15 text-primary"
-                  : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-              }`}>
+            <div
+              className={`flex gap-3 ${SCRIPT[activeTurn]!.role === "candidate" ? "flex-row-reverse" : ""}`}
+            >
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
+                  SCRIPT[activeTurn]!.role === "interviewer"
+                    ? "bg-primary/15 text-primary"
+                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                }`}
+              >
                 {SCRIPT[activeTurn]!.role === "interviewer" ? interviewerLabel : candidateLabel}
               </div>
-              <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                SCRIPT[activeTurn]!.role === "candidate"
-                  ? "bg-amber-500/10 text-foreground border border-amber-500/20"
-                  : "bg-card text-foreground border border-border"
-              }`}>
+              <div
+                className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  SCRIPT[activeTurn]!.role === "candidate"
+                    ? "bg-amber-500/10 text-foreground border border-amber-500/20"
+                    : "bg-card text-foreground border border-border"
+                }`}
+              >
                 <span className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                   {SCRIPT[activeTurn]!.role === "interviewer" ? "Bill" : "You"}
                 </span>
@@ -379,7 +421,9 @@ function DemoInterview() {
         <div className="rounded-xl border border-dashed border-border bg-muted/30 py-16 text-center">
           <Sparkles className="mx-auto h-8 w-8 text-muted-foreground/50" />
           <p className="mt-3 text-sm text-muted-foreground">Press Play to watch how it's done.</p>
-          <p className="mt-1 text-xs text-muted-foreground/60">Bill asks the questions. Your voice clone shows the way.</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">
+            Bill asks the questions. Your voice clone shows the way.
+          </p>
         </div>
       )}
 
