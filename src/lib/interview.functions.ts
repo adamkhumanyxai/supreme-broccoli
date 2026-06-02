@@ -71,22 +71,23 @@ function bullets(arr: string[] | null | undefined): string {
 
 export const startInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: {
-    job_id: string;
-    interview_type: InterviewType;
-    persona: Persona;
-    difficulty: Difficulty;
-    target_duration_minutes: number;
-  }) =>
-    z
-      .object({
-        job_id: z.string().uuid(),
-        interview_type: z.enum(INTERVIEW_TYPES),
-        persona: PersonaSchema,
-        difficulty: z.enum(DIFFICULTIES),
-        target_duration_minutes: z.number().int().min(5).max(180),
-      })
-      .parse(data),
+  .inputValidator(
+    (data: {
+      job_id: string;
+      interview_type: InterviewType;
+      persona: Persona;
+      difficulty: Difficulty;
+      target_duration_minutes: number;
+    }) =>
+      z
+        .object({
+          job_id: z.string().uuid(),
+          interview_type: z.enum(INTERVIEW_TYPES),
+          persona: PersonaSchema,
+          difficulty: z.enum(DIFFICULTIES),
+          target_duration_minutes: z.number().int().min(5).max(180),
+        })
+        .parse(data),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -136,7 +137,11 @@ async function buildSystemPrompt(
     .eq("user_id", userId)
     .maybeSingle();
 
-  const persona = (session.persona ?? { title: "Hiring Manager", seniority: "", style: "" }) as Persona;
+  const persona = (session.persona ?? {
+    title: "Hiring Manager",
+    seniority: "",
+    style: "",
+  }) as Persona;
   const dossier = (insight?.dossier ?? {}) as Record<string, string>;
   const reqsArr = (job as { requirements?: string[] } | null)?.requirements ?? [];
   const respsArr = (job as { responsibilities?: string[] } | null)?.responsibilities ?? [];
@@ -313,24 +318,21 @@ export const endInterview = createServerFn({ method: "POST" })
 
 export const voiceSessionFinalize = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: {
-    session_id: string;
-    audio_storage_path: string | null;
-    transcript: Turn[];
-  }) =>
-    z
-      .object({
-        session_id: z.string().uuid(),
-        audio_storage_path: z.string().nullable(),
-        transcript: z.array(
-          z.object({
-            role: z.enum(["interviewer", "candidate"]),
-            content: z.string(),
-            timestamp: z.string(),
-          }),
-        ),
-      })
-      .parse(data),
+  .inputValidator(
+    (data: { session_id: string; audio_storage_path: string | null; transcript: Turn[] }) =>
+      z
+        .object({
+          session_id: z.string().uuid(),
+          audio_storage_path: z.string().nullable(),
+          transcript: z.array(
+            z.object({
+              role: z.enum(["interviewer", "candidate"]),
+              content: z.string(),
+              timestamp: z.string(),
+            }),
+          ),
+        })
+        .parse(data),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -426,10 +428,7 @@ export const generateDebrief = createServerFn({ method: "POST" })
 
     const transcript = (Array.isArray(session.transcript) ? session.transcript : []) as Turn[];
     const formatted = transcript
-      .map(
-        (t) =>
-          `${t.role === "interviewer" ? "INTERVIEWER" : "CANDIDATE"}: ${t.content}`,
-      )
+      .map((t) => `${t.role === "interviewer" ? "INTERVIEWER" : "CANDIDATE"}: ${t.content}`)
       .join("\n\n");
 
     const system = `You are a brutally honest but supportive interview coach reviewing a mock interview transcript. Help the candidate get sharper, not flatter them.
@@ -508,7 +507,7 @@ export const listSessions = createServerFn({ method: "GET" })
         persona: s.persona as Persona | null,
         overall_score: debrief?.overall_score ?? null,
         job_title: job?.title ?? null,
-        company_name: job?.company_id ? companyMap.get(job.company_id)?.name ?? null : null,
+        company_name: job?.company_id ? (companyMap.get(job.company_id)?.name ?? null) : null,
       };
     });
   });

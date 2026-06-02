@@ -71,9 +71,7 @@ function HistoryPage() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-2">
-                {row.error && (
-                  <p className="text-sm text-destructive">Error: {row.error}</p>
-                )}
+                {row.error && <p className="text-sm text-destructive">Error: {row.error}</p>}
                 {dossier ? (
                   <div className="space-y-3">
                     {DOSSIER_SECTIONS.map((s) => {
@@ -86,7 +84,9 @@ function HistoryPage() {
                           />
                         ) : null;
                       }
-                      const content = dossier[s.key as keyof Omit<Dossier, "employer_brand">] as string | undefined;
+                      const content = dossier[s.key as keyof Omit<Dossier, "employer_brand">] as
+                        | string
+                        | undefined;
                       return (
                         <DossierSection
                           key={s.key}

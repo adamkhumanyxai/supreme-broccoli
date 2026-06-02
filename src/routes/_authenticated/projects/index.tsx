@@ -2,7 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { listAllProjects, deleteProject, DELIVERABLE_LABELS, type DeliverableType } from "@/lib/projects.functions";
+import {
+  listAllProjects,
+  deleteProject,
+  DELIVERABLE_LABELS,
+  type DeliverableType,
+} from "@/lib/projects.functions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,7 +84,8 @@ function AllProjects() {
               className="editorial-card block p-4 pr-10"
             >
               <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                {DELIVERABLE_LABELS[(p.deliverable_type ?? "custom") as DeliverableType] ?? "Project"}
+                {DELIVERABLE_LABELS[(p.deliverable_type ?? "custom") as DeliverableType] ??
+                  "Project"}
               </p>
               <p className="mt-2 font-medium text-foreground">{p.title}</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -93,7 +99,7 @@ function AllProjects() {
             </Link>
             <button
               className="absolute right-2 top-2 rounded p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setPendingDelete({ id: p.id, title: p.title })}
+              onClick={() => setPendingDelete({ id: p.id, title: p.title ?? "Untitled project" })}
               title="Delete project"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -102,12 +108,18 @@ function AllProjects() {
         ))}
       </div>
 
-      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o && !deleting) setPendingDelete(null); }}>
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o && !deleting) setPendingDelete(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this project?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{pendingDelete?.title}</strong> — along with its research, outline, and all drafted sections — will be permanently removed. This can't be undone.
+              <strong>{pendingDelete?.title}</strong> — along with its research, outline, and all
+              drafted sections — will be permanently removed. This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

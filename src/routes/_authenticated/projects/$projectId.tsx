@@ -38,7 +38,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Sparkles, Search, FileText, Download, Wand2, Minimize2, Maximize2, MessagesSquare, Lightbulb, Pencil, Check, X, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Search,
+  FileText,
+  Download,
+  Wand2,
+  Minimize2,
+  Maximize2,
+  MessagesSquare,
+  Lightbulb,
+  Pencil,
+  Check,
+  X,
+  Trash2,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -124,12 +139,18 @@ function ProjectWorkspace() {
         </div>
       </div>
 
-      <AlertDialog open={confirmDelete} onOpenChange={(o) => { if (!o && !deleting) setConfirmDelete(false); }}>
+      <AlertDialog
+        open={confirmDelete}
+        onOpenChange={(o) => {
+          if (!o && !deleting) setConfirmDelete(false);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this project?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{project.title}</strong> — along with its research, outline, and all drafted sections — will be permanently removed. This can't be undone.
+              <strong>{project.title}</strong> — along with its research, outline, and all drafted
+              sections — will be permanently removed. This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -155,16 +176,31 @@ function ProjectWorkspace() {
         </TabsList>
 
         <TabsContent value="brief">
-          <BriefTab project={project} onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })} />
+          <BriefTab
+            project={project}
+            onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })}
+          />
         </TabsContent>
         <TabsContent value="research">
-          <ResearchTab projectId={projectId} project={project} onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })} />
+          <ResearchTab
+            projectId={projectId}
+            project={project}
+            onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })}
+          />
         </TabsContent>
         <TabsContent value="outline">
-          <OutlineTab projectId={projectId} project={project} onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })} />
+          <OutlineTab
+            projectId={projectId}
+            project={project}
+            onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })}
+          />
         </TabsContent>
         <TabsContent value="drafting">
-          <DraftingTab projectId={projectId} project={project} onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })} />
+          <DraftingTab
+            projectId={projectId}
+            project={project}
+            onUpdate={() => qc.invalidateQueries({ queryKey: ["project", projectId] })}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -175,7 +211,12 @@ function BriefTab({
   project,
   onUpdate,
 }: {
-  project: { id: string; brief: string; extracted_brief: ExtractedBrief | null; personal_request: string | null };
+  project: {
+    id: string;
+    brief: string;
+    extracted_brief: ExtractedBrief | null;
+    personal_request: string | null;
+  };
   onUpdate: () => void;
 }) {
   const saveRequest = useServerFn(updatePersonalRequest);
@@ -209,11 +250,22 @@ function BriefTab({
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4 text-primary" />
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Your angle</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Your angle
+            </p>
           </div>
           {!editing && (
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => { setDraft(project.personal_request ?? ""); setEditing(true); }}>
-              <Pencil className="mr-1.5 h-3 w-3" /> {project.personal_request ? "Edit" : "Add angle"}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => {
+                setDraft(project.personal_request ?? "");
+                setEditing(true);
+              }}
+            >
+              <Pencil className="mr-1.5 h-3 w-3" />{" "}
+              {project.personal_request ? "Edit" : "Add angle"}
             </Button>
           )}
         </div>
@@ -231,7 +283,11 @@ function BriefTab({
             />
             <div className="flex items-center gap-2">
               <Button size="sm" onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Check className="mr-1.5 h-3 w-3" />}
+                {saving ? (
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                ) : (
+                  <Check className="mr-1.5 h-3 w-3" />
+                )}
                 Save
               </Button>
               <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}>
@@ -276,7 +332,9 @@ function BriefTab({
           )}
           {eb.key_questions.length > 0 && (
             <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Key questions</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Key questions
+              </p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
                 {eb.key_questions.map((q, i) => (
                   <li key={i}>{q}</li>
@@ -289,7 +347,9 @@ function BriefTab({
 
       <div className="editorial-card p-6">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">Original brief</p>
-        <pre className="mt-3 whitespace-pre-wrap font-sans text-sm text-foreground">{project.brief}</pre>
+        <pre className="mt-3 whitespace-pre-wrap font-sans text-sm text-foreground">
+          {project.brief}
+        </pre>
       </div>
     </div>
   );
@@ -340,7 +400,11 @@ function ResearchTab({
           We'll search the web for specifics that make your deliverable substantively impressive.
         </p>
         <Button onClick={start} disabled={running} className="mt-5">
-          {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+          {running ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-4 w-4" />
+          )}
           Run research
         </Button>
       </div>
@@ -352,7 +416,11 @@ function ResearchTab({
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{research.findings.length} findings</p>
         <Button variant="outline" size="sm" onClick={start} disabled={running}>
-          {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+          {running ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-4 w-4" />
+          )}
           Re-run
         </Button>
       </div>
@@ -471,9 +539,7 @@ function OutlineTab({
                 onBlur={() => save(outline)}
                 className="text-sm"
               />
-              <p className="text-xs text-muted-foreground">
-                {s.content ? "Drafted ✓" : "Empty"}
-              </p>
+              <p className="text-xs text-muted-foreground">{s.content ? "Drafted ✓" : "Empty"}</p>
             </div>
           </div>
         </div>
@@ -559,7 +625,8 @@ function DraftingTab({
           <DialogHeader>
             <DialogTitle>Apply interviewer feedback</DialogTitle>
             <DialogDescription>
-              Paste the specific feedback you got. AI will rewrite this section, preserving the rest.
+              Paste the specific feedback you got. AI will rewrite this section, preserving the
+              rest.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -592,7 +659,11 @@ function DraftingTab({
                   onClick={() => runAction(s.id, "draft")}
                   disabled={busy}
                 >
-                  {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                  {busy ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-3 w-3" />
+                  )}
                   <span className="ml-1">AI draft</span>
                 </Button>
                 <Button
@@ -631,7 +702,9 @@ function DraftingTab({
             <Textarea
               value={s.content}
               onChange={(e) => {
-                const next = outline.map((x) => (x.id === s.id ? { ...x, content: e.target.value } : x));
+                const next = outline.map((x) =>
+                  x.id === s.id ? { ...x, content: e.target.value } : x,
+                );
                 setOutline(next);
               }}
               onBlur={() => manualEdit(s.id, s.content)}
@@ -641,7 +714,9 @@ function DraftingTab({
             />
             {s.content && (
               <details className="text-sm">
-                <summary className="cursor-pointer text-xs text-muted-foreground">Preview rendered</summary>
+                <summary className="cursor-pointer text-xs text-muted-foreground">
+                  Preview rendered
+                </summary>
                 <div className="prose prose-invert prose-zinc mt-3 max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content}</ReactMarkdown>
                 </div>
@@ -767,10 +842,7 @@ function ExportMenu({
 </style></head><body>
 <h1>${project.title}</h1>
 ${sections
-  .map(
-    (s) =>
-      `<h2>${escapeHtml(s.title)}</h2><pre>${escapeHtml(s.content || "(empty)")}</pre>`,
-  )
+  .map((s) => `<h2>${escapeHtml(s.title)}</h2><pre>${escapeHtml(s.content || "(empty)")}</pre>`)
   .join("")}
 <p style="margin-top:60px;color:#78716c;font-size:12px">Generated ${new Date().toLocaleString()}</p>
 </body></html>`;
@@ -795,7 +867,11 @@ ${sections
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button disabled={busy}>
-          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+          {busy ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
           Export
         </Button>
       </DropdownMenuTrigger>

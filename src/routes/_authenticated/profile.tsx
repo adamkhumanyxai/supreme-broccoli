@@ -44,8 +44,7 @@ function ProfilePage() {
     return <div className="text-sm text-muted-foreground">Loading…</div>;
   }
 
-  const update = (patch: Partial<FullProfile>) =>
-    setProfile((p) => (p ? { ...p, ...patch } : p));
+  const update = (patch: Partial<FullProfile>) => setProfile((p) => (p ? { ...p, ...patch } : p));
 
   return (
     <div className="space-y-8">

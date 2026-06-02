@@ -49,7 +49,11 @@ function Landing() {
             AI-powered interview preparation
           </p>
           <h1 className="font-serif text-5xl leading-tight text-foreground md:text-6xl">
-            Walk in like<br />you've already<br />been there.
+            Walk in like
+            <br />
+            you've already
+            <br />
+            been there.
           </h1>
           <p className="max-w-xl text-lg text-muted-foreground">
             Real company intel, real-time mock interviews, real take-home help — all wired to the

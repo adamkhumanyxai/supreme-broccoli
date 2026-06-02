@@ -93,7 +93,8 @@ function NewProject() {
           disabled={submitting}
         />
         <p className="text-xs text-muted-foreground">
-          This gets threaded through research, outline, and every drafted section — shaping the AI's lens without replacing the brief.
+          This gets threaded through research, outline, and every drafted section — shaping the AI's
+          lens without replacing the brief.
         </p>
       </div>
 

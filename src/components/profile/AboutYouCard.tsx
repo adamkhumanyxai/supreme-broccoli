@@ -26,7 +26,7 @@ export function AboutYouCard({ userId, profile, onChange }: Props) {
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
   const [headline, setHeadline] = useState(profile?.headline ?? "");
   const [years, setYears] = useState<string>(
-    profile?.years_experience != null ? String(profile.years_experience) : ""
+    profile?.years_experience != null ? String(profile.years_experience) : "",
   );
   const [domain, setDomain] = useState<string>(profile?.domain ?? "");
   const [roles, setRoles] = useState<string[]>(profile?.preferred_role_types ?? []);
@@ -41,7 +41,7 @@ export function AboutYouCard({ userId, profile, onChange }: Props) {
 
   const suggestions = useMemo(
     () => ROLE_SUGGESTIONS.filter((r) => !roles.includes(r)).slice(0, 8),
-    [roles]
+    [roles],
   );
 
   const addRole = (r: string) => {
@@ -57,7 +57,20 @@ export function AboutYouCard({ userId, profile, onChange }: Props) {
       full_name: fullName || null,
       headline: headline || null,
       years_experience: years ? Number(years) : null,
-      domain: (domain || null) as "engineering" | "product" | "design" | "sales" | "marketing" | "operations" | "customer_success" | "data" | "finance" | "people" | "executive" | "other" | null,
+      domain: (domain || null) as
+        | "engineering"
+        | "product"
+        | "design"
+        | "sales"
+        | "marketing"
+        | "operations"
+        | "customer_success"
+        | "data"
+        | "finance"
+        | "people"
+        | "executive"
+        | "other"
+        | null,
       preferred_role_types: roles,
     };
     const { error } = await supabase.from("profiles").update(payload).eq("user_id", userId);

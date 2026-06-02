@@ -10,8 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DOMAIN_OPTIONS } from "@/lib/profile";
+import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { Loader2, ArrowRight } from "lucide-react";
+
+type UserDomain = Database["public"]["Enums"]["user_domain"];
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   component: Onboarding,
@@ -55,7 +58,7 @@ function Onboarding() {
         // save About You
         await supabase
           .from("profiles")
-          .update({ full_name: fullName, headline, domain: domain || null })
+          .update({ full_name: fullName, headline, domain: (domain || null) as UserDomain | null })
           .eq("user_id", user.id);
         setStep(3);
       } else if (step === 3) {
@@ -105,10 +108,10 @@ function Onboarding() {
   }
 
   const canProceed =
-    (step === 1) ||
+    step === 1 ||
     (step === 2 && fullName.trim().length > 0 && headline.trim().length > 0 && domain.length > 0) ||
-    (step === 3) ||
-    (step === 4);
+    step === 3 ||
+    step === 4;
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">

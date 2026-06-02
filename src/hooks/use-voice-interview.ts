@@ -35,8 +35,8 @@ export type VoiceInterview = {
 };
 
 // VAD settings
-const VAD_THRESHOLD = 0.015;        // normalised energy threshold (0–1)
-const SILENCE_DURATION_MS = 1500;   // ms of silence after speech to trigger send
+const VAD_THRESHOLD = 0.015; // normalised energy threshold (0–1)
+const SILENCE_DURATION_MS = 1500; // ms of silence after speech to trigger send
 const MIN_SPEECH_DURATION_MS = 400; // ignore very short sounds / blips
 
 /**
@@ -75,8 +75,12 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
   const speechStartRef = useRef<number | null>(null);
   const lastSpeechRef = useRef<number | null>(null);
 
-  useEffect(() => { systemInstructionRef.current = opts.systemInstruction; }, [opts.systemInstruction]);
-  useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
+  useEffect(() => {
+    systemInstructionRef.current = opts.systemInstruction;
+  }, [opts.systemInstruction]);
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
 
   const addTurn = useCallback((turn: VoiceTurn) => {
     setTranscript((t) => [...t, turn]);
@@ -90,11 +94,19 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
       levelLoopRef.current = null;
     }
     if (currentRecorderRef.current?.state !== "inactive") {
-      try { currentRecorderRef.current?.stop(); } catch { /* ignore */ }
+      try {
+        currentRecorderRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
     }
     currentRecorderRef.current = null;
     if (sessionRecorderRef.current?.state !== "inactive") {
-      try { sessionRecorderRef.current?.stop(); } catch { /* ignore */ }
+      try {
+        sessionRecorderRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
     }
     sessionRecorderRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -107,7 +119,11 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
     if (audioElementRef.current) {
       audioElementRef.current.pause();
       audioElementRef.current.src = "";
-      try { document.body.removeChild(audioElementRef.current); } catch { /* ignore */ }
+      try {
+        document.body.removeChild(audioElementRef.current);
+      } catch {
+        /* ignore */
+      }
       audioElementRef.current = null;
     }
   }, []);
@@ -130,8 +146,14 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
       }
       const el = audioElementRef.current;
       el.src = url;
-      el.onended = () => { URL.revokeObjectURL(url); resolve(); };
-      el.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+      el.onended = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      el.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
       el.play().catch(() => resolve());
     });
   }, []);
@@ -145,18 +167,27 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
       if (isEndingRef.current) return;
       setState("processing");
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         const jwt = session?.access_token;
-        if (!jwt) { setError("Not authenticated."); setState("error"); return; }
+        if (!jwt) {
+          setError("Not authenticated.");
+          setState("error");
+          return;
+        }
 
         const fd = new FormData();
         if (!isStart && blob.size > 0) fd.append("audio", blob, "audio.webm");
-        fd.append("messages", JSON.stringify(
-          transcriptRef.current.map((t) => ({
-            role: t.role === "candidate" ? "user" : "assistant",
-            content: t.content,
-          })),
-        ));
+        fd.append(
+          "messages",
+          JSON.stringify(
+            transcriptRef.current.map((t) => ({
+              role: t.role === "candidate" ? "user" : "assistant",
+              content: t.content,
+            })),
+          ),
+        );
         fd.append("system_instruction", systemInstructionRef.current);
         if (isStart) fd.append("start", "true");
 
@@ -167,20 +198,26 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
         });
 
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` })) as { error?: string };
+          const errData = (await res.json().catch(() => ({ error: `HTTP ${res.status}` }))) as {
+            error?: string;
+          };
           setError(errData.error ?? "Voice turn failed.");
           setState("error");
           return;
         }
 
-        const data = await res.json() as {
+        const data = (await res.json()) as {
           user_text?: string;
           ai_text?: string;
           audio_b64?: string | null;
           error?: string;
         };
 
-        if (data.error && !data.ai_text) { setError(data.error); setState("error"); return; }
+        if (data.error && !data.ai_text) {
+          setError(data.error);
+          setState("error");
+          return;
+        }
 
         // Empty transcription (silence / too short) — just restart listening
         if (!isStart && !data.user_text && !data.ai_text) {
@@ -189,10 +226,18 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
         }
 
         if (data.user_text) {
-          addTurn({ role: "candidate", content: data.user_text, timestamp: new Date().toISOString() });
+          addTurn({
+            role: "candidate",
+            content: data.user_text,
+            timestamp: new Date().toISOString(),
+          });
         }
         if (data.ai_text) {
-          addTurn({ role: "interviewer", content: data.ai_text, timestamp: new Date().toISOString() });
+          addTurn({
+            role: "interviewer",
+            content: data.ai_text,
+            timestamp: new Date().toISOString(),
+          });
         }
 
         if (data.audio_b64) {
@@ -218,7 +263,9 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
       const recorder = new MediaRecorder(streamRef.current, { mimeType });
       const chunks: Blob[] = [];
 
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
       recorder.onstop = () => {
         if (isEndingRef.current) return;
         const blob = new Blob(chunks, { type: mimeType });
@@ -258,7 +305,8 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
           lastSpeechRef.current = Date.now();
         } else if (hasSpeechRef.current && lastSpeechRef.current) {
           const silence = Date.now() - lastSpeechRef.current;
-          const speechDur = lastSpeechRef.current - (speechStartRef.current ?? lastSpeechRef.current);
+          const speechDur =
+            lastSpeechRef.current - (speechStartRef.current ?? lastSpeechRef.current);
           if (silence >= SILENCE_DURATION_MS && speechDur >= MIN_SPEECH_DURATION_MS) {
             recorder.stop();
             return;
@@ -278,7 +326,12 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true },
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
       });
     } catch {
       setError("Microphone permission denied or unavailable.");
@@ -298,16 +351,23 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
     // Session-level mic recorder for the end() audio blob
     try {
       const sr = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      sr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+      sr.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
       sr.start(1000);
       sessionRecorderRef.current = sr;
-    } catch { /* MediaRecorder unavailable */ }
+    } catch {
+      /* MediaRecorder unavailable */
+    }
 
     setState("connecting");
     await sendTurnRef.current(new Blob(), true);
   }, []);
 
-  const end = useCallback(async (): Promise<{ audioBlob: Blob | null; transcript: VoiceTurn[] }> => {
+  const end = useCallback(async (): Promise<{
+    audioBlob: Blob | null;
+    transcript: VoiceTurn[];
+  }> => {
     setState("ended");
     isEndingRef.current = true;
 
@@ -319,7 +379,9 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
           sessionRecorderRef.current!.stop();
         });
         audioBlob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     const finalTranscript = transcriptRef.current;
@@ -330,7 +392,9 @@ export function useVoiceInterview(opts: VoiceInterviewOptions): VoiceInterview {
   const toggleMute = useCallback(() => {
     isMutedRef.current = !isMutedRef.current;
     setIsMuted(isMutedRef.current);
-    streamRef.current?.getAudioTracks().forEach((t) => { t.enabled = !isMutedRef.current; });
+    streamRef.current?.getAudioTracks().forEach((t) => {
+      t.enabled = !isMutedRef.current;
+    });
   }, []);
 
   return { state, transcript, audioLevel, isMuted, error, start, end, toggleMute };

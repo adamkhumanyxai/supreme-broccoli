@@ -67,9 +67,21 @@ function LiveInterview() {
 
   const isVoice = data.session.mode === "voice";
   return isVoice ? (
-    <VoiceLiveInterview jobId={jobId} sessionId={sessionId} session={data.session} job={data.job} company={data.company} />
+    <VoiceLiveInterview
+      jobId={jobId}
+      sessionId={sessionId}
+      session={data.session}
+      job={data.job}
+      company={data.company}
+    />
   ) : (
-    <TextLiveInterview jobId={jobId} sessionId={sessionId} session={data.session} job={data.job} company={data.company} />
+    <TextLiveInterview
+      jobId={jobId}
+      sessionId={sessionId}
+      session={data.session}
+      job={data.job}
+      company={data.company}
+    />
   );
 }
 
@@ -136,7 +148,11 @@ function TextLiveInterview({ jobId, sessionId, session, job, company }: SharedPr
     const msg = input.trim();
     if (!msg || thinking) return;
     setInput("");
-    const optimistic: Turn = { role: "candidate", content: msg, timestamp: new Date().toISOString() };
+    const optimistic: Turn = {
+      role: "candidate",
+      content: msg,
+      timestamp: new Date().toISOString(),
+    };
     setTranscript((t) => [...t, optimistic]);
     setThinking(true);
     try {
@@ -161,7 +177,11 @@ function TextLiveInterview({ jobId, sessionId, session, job, company }: SharedPr
     }
   }
 
-  const persona = (session.persona ?? { title: "Interviewer", seniority: "", style: "" }) as Persona;
+  const persona = (session.persona ?? {
+    title: "Interviewer",
+    seniority: "",
+    style: "",
+  }) as Persona;
   const mins = Math.floor(elapsed / 60);
   const secs = elapsed % 60;
   const target = session.target_duration_minutes ?? 30;
@@ -198,7 +218,10 @@ function TextLiveInterview({ jobId, sessionId, session, job, company }: SharedPr
       <div ref={scrollRef} className="flex-1 overflow-y-auto py-6">
         <div className="mx-auto max-w-3xl space-y-5">
           {transcript.map((t, i) => (
-            <div key={i} className={`flex gap-3 ${t.role === "candidate" ? "flex-row-reverse" : ""}`}>
+            <div
+              key={i}
+              className={`flex gap-3 ${t.role === "candidate" ? "flex-row-reverse" : ""}`}
+            >
               {t.role === "interviewer" && (
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-medium text-primary">
                   {initials(persona.title)}
@@ -297,13 +320,21 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
       .catch((e) => toast.error((e as Error).message));
   }, [sessionId, buildPrompt]);
 
-  const persona = (session.persona ?? { title: "Interviewer", seniority: "", style: "" }) as Persona;
+  const persona = (session.persona ?? {
+    title: "Interviewer",
+    seniority: "",
+    style: "",
+  }) as Persona;
 
   // Map persona seniority to an OpenAI Realtime voice
   const seniority = persona.seniority?.toLowerCase() ?? "";
-  const voiceName = (seniority.includes("senior") || seniority.includes("vp") || seniority.includes("executive") || seniority.includes("director"))
-    ? "echo"
-    : "alloy";
+  const voiceName =
+    seniority.includes("senior") ||
+    seniority.includes("vp") ||
+    seniority.includes("executive") ||
+    seniority.includes("director")
+      ? "echo"
+      : "alloy";
 
   const voice = useVoiceInterview({
     systemInstruction: systemPrompt ?? "",
@@ -333,7 +364,9 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
 
       let audioPath: string | null = null;
       if (audioBlob) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const path = `${user.id}/sessions/${sessionId}.webm`;
           const { error } = await supabase.storage
@@ -363,7 +396,10 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
       <div className="mx-auto max-w-2xl pt-12 text-center">
         <h2 className="font-serif text-2xl text-foreground">Voice mode unavailable</h2>
         <p className="mt-3 text-sm text-muted-foreground">{voice.error}</p>
-        <Button className="mt-6" onClick={() => navigate({ to: "/jobs/$jobId/mock/new", params: { jobId } })}>
+        <Button
+          className="mt-6"
+          onClick={() => navigate({ to: "/jobs/$jobId/mock/new", params: { jobId } })}
+        >
           Start a new mock
         </Button>
       </div>
@@ -384,8 +420,8 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
     voice.state === "speaking"
       ? "text-primary"
       : voice.state === "listening"
-      ? "text-emerald-400"
-      : "text-muted-foreground";
+        ? "text-emerald-400"
+        : "text-muted-foreground";
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col">
@@ -439,7 +475,10 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
             </p>
           )}
           {voice.transcript.map((t, i) => (
-            <div key={i} className={`flex ${t.role === "candidate" ? "justify-end" : "justify-start"}`}>
+            <div
+              key={i}
+              className={`flex ${t.role === "candidate" ? "justify-end" : "justify-start"}`}
+            >
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed ${
                   t.role === "candidate"
@@ -462,7 +501,11 @@ function VoiceLiveInterview({ jobId, sessionId, session, job, company }: SharedP
           <Button
             variant={voice.isMuted ? "default" : "outline"}
             onClick={voice.toggleMute}
-            disabled={voice.state !== "listening" && voice.state !== "speaking" && voice.state !== "processing"}
+            disabled={
+              voice.state !== "listening" &&
+              voice.state !== "speaking" &&
+              voice.state !== "processing"
+            }
           >
             {voice.isMuted ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
             {voice.isMuted ? "Unmute" : "Mute"}

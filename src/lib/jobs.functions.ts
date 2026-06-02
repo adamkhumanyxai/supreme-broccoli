@@ -108,8 +108,7 @@ export const extractJob = createServerFn({ method: "POST" })
       try {
         const res = await fetch(sourceUrl, {
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (compatible; InterviewPrepBot/1.0; +https://lovable.dev)",
+            "User-Agent": "Mozilla/5.0 (compatible; InterviewPrepBot/1.0; +https://lovable.dev)",
             Accept: "text/html,application/xhtml+xml",
           },
         });
@@ -141,8 +140,7 @@ export const extractJob = createServerFn({ method: "POST" })
     try {
       const aiResult = await generateText({
         model,
-        system:
-          `You are a job description parser. Extract clean structured data. If a field can't be determined, return null. Clean boilerplate from descriptions. Return arrays even if empty.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${jsonShape}`,
+        system: `You are a job description parser. Extract clean structured data. If a field can't be determined, return null. Clean boilerplate from descriptions. Return arrays even if empty.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${jsonShape}`,
         prompt: `Parse this job posting. ${sourceUrl ? `Source URL: ${sourceUrl}\n\n` : ""}Content:\n\n${jobContent}`,
       });
       rawText = aiResult.text;
@@ -244,7 +242,9 @@ export const listJobs = createServerFn({ method: "GET" })
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const companyIds = Array.from(new Set((data || []).map((j) => j.company_id).filter(Boolean))) as string[];
+    const companyIds = Array.from(
+      new Set((data || []).map((j) => j.company_id).filter(Boolean)),
+    ) as string[];
     const companies =
       companyIds.length === 0
         ? []
@@ -271,16 +271,14 @@ export const listJobs = createServerFn({ method: "GET" })
 
     return (data || []).map((j) => ({
       ...j,
-      company: j.company_id ? companyMap.get(j.company_id) ?? null : null,
+      company: j.company_id ? (companyMap.get(j.company_id) ?? null) : null,
       current_insight: insightMap.get(j.id) ?? null,
     }));
   });
 
 export const getJob = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { job_id: string }) =>
-    z.object({ job_id: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: { job_id: string }) => z.object({ job_id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { data: job, error } = await supabase
@@ -327,9 +325,7 @@ export const updateJobStatus = createServerFn({ method: "POST" })
 
 export const listInsightHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { job_id: string }) =>
-    z.object({ job_id: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: { job_id: string }) => z.object({ job_id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { data: rows, error } = await supabase
@@ -343,9 +339,7 @@ export const listInsightHistory = createServerFn({ method: "GET" })
 
 export const deleteJob = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { job_id: string }) =>
-    z.object({ job_id: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: { job_id: string }) => z.object({ job_id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase

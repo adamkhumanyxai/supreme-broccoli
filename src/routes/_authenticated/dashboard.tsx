@@ -37,9 +37,7 @@ function Dashboard() {
     <div className="space-y-10">
       <div>
         <p className="text-sm text-muted-foreground">Welcome back</p>
-        <h2 className="mt-1 font-serif text-3xl text-foreground md:text-4xl">
-          Hello, {name}.
-        </h2>
+        <h2 className="mt-1 font-serif text-3xl text-foreground md:text-4xl">Hello, {name}.</h2>
         <p className="mt-3 max-w-xl text-muted-foreground">
           Add your first job to start building company insights, mock interviews, and a tailored
           presentation.
@@ -50,16 +48,36 @@ function Dashboard() {
         <Button size="lg" onClick={() => navigate({ to: "/jobs/new" })} className="h-11">
           <Plus className="mr-2 h-4 w-4" /> New job
         </Button>
-        <Button size="lg" variant="outline" onClick={() => navigate({ to: "/jobs" })} className="h-11">
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={() => navigate({ to: "/jobs" })}
+          className="h-11"
+        >
           View all jobs
         </Button>
-        <Button size="lg" variant="outline" onClick={() => navigate({ to: "/sessions" })} className="h-11">
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={() => navigate({ to: "/sessions" })}
+          className="h-11"
+        >
           Mock sessions
         </Button>
-        <Button size="lg" variant="outline" onClick={() => navigate({ to: "/projects" })} className="h-11">
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={() => navigate({ to: "/projects" })}
+          className="h-11"
+        >
           Projects
         </Button>
-        <Button size="lg" variant="outline" onClick={() => navigate({ to: "/demo-interview" })} className="h-11">
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={() => navigate({ to: "/demo-interview" })}
+          className="h-11"
+        >
           <Sparkles className="mr-2 h-4 w-4" /> Demo Interview
         </Button>
       </div>

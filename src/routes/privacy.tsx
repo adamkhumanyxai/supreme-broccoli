@@ -47,8 +47,8 @@ function Privacy() {
           <h2>Your controls</h2>
           <ul>
             <li>
-              <strong>Retention.</strong> You can configure how long voice recordings and transcripts
-              are kept. Defaults: recordings 90 days, transcripts 365 days.
+              <strong>Retention.</strong> You can configure how long voice recordings and
+              transcripts are kept. Defaults: recordings 90 days, transcripts 365 days.
             </li>
             <li>
               <strong>Export.</strong> Download a JSON archive of all your data from Settings →
@@ -62,8 +62,8 @@ function Privacy() {
 
           <h2>Where it lives</h2>
           <p>
-            App + database: Supabase (Postgres, Storage, Auth). AI processing: Google Gemini via
-            the Lovable AI Gateway. We do not transmit your data to other third parties.
+            App + database: Supabase (Postgres, Storage, Auth). AI processing: Google Gemini via the
+            Lovable AI Gateway. We do not transmit your data to other third parties.
           </p>
 
           <h2>Questions</h2>

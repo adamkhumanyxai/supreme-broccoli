@@ -14,7 +14,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { format } from "date-fns";
 import { MessagesSquare, Mic, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -94,7 +102,12 @@ function SessionsList() {
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis domain={[0, 5]} stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <Tooltip />
-                <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -146,10 +159,12 @@ function SessionsList() {
                     </Link>
                     <button
                       className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => setPendingDelete({
-                        id: s.id,
-                        label: `${s.company_name ? `${s.company_name} · ` : ""}${s.job_title ?? "session"} — ${s.started_at ? format(new Date(s.started_at), "MMM d") : ""}`,
-                      })}
+                      onClick={() =>
+                        setPendingDelete({
+                          id: s.id,
+                          label: `${s.company_name ? `${s.company_name} · ` : ""}${s.job_title ?? "session"} — ${s.started_at ? format(new Date(s.started_at), "MMM d") : ""}`,
+                        })
+                      }
                       title="Delete session"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -162,12 +177,18 @@ function SessionsList() {
         </table>
       </div>
 
-      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o && !deleting) setPendingDelete(null); }}>
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o && !deleting) setPendingDelete(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this session?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{pendingDelete?.label}</strong> — along with its transcript and feedback — will be permanently removed. This can't be undone.
+              <strong>{pendingDelete?.label}</strong> — along with its transcript and feedback —
+              will be permanently removed. This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

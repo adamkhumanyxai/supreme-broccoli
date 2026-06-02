@@ -73,11 +73,20 @@ export function ResumeCard({ userId, profile, onChange }: Props) {
               <FileText className="h-4 w-4 text-primary" />
               <span className="text-foreground">resume.pdf</span>
               <span className="text-muted-foreground">
-                · {profile?.resume_text ? `${profile.resume_text.length.toLocaleString()} chars extracted` : "no text"}
+                ·{" "}
+                {profile?.resume_text
+                  ? `${profile.resume_text.length.toLocaleString()} chars extracted`
+                  : "no text"}
               </span>
             </div>
             <label>
-              <input type="file" accept="application/pdf" hidden onChange={onFile} disabled={uploading} />
+              <input
+                type="file"
+                accept="application/pdf"
+                hidden
+                onChange={onFile}
+                disabled={uploading}
+              />
               <Button asChild variant="outline" disabled={uploading}>
                 <span>{uploading ? "Uploading…" : "Replace"}</span>
               </Button>
@@ -89,7 +98,13 @@ export function ResumeCard({ userId, profile, onChange }: Props) {
             <span className="text-sm text-foreground">
               {uploading ? "Uploading…" : "Click to upload your resume (PDF, ≤10MB)"}
             </span>
-            <input type="file" accept="application/pdf" hidden onChange={onFile} disabled={uploading} />
+            <input
+              type="file"
+              accept="application/pdf"
+              hidden
+              onChange={onFile}
+              disabled={uploading}
+            />
           </label>
         )}
       </div>
@@ -97,9 +112,7 @@ export function ResumeCard({ userId, profile, onChange }: Props) {
       {profile?.resume_text && (
         <Collapsible open={open} onOpenChange={setOpen} className="mt-5">
           <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ChevronDown
-              className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-            />
+            <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
             View extracted text
           </CollapsibleTrigger>
           <CollapsibleContent>

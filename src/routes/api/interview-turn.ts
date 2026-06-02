@@ -46,8 +46,13 @@ async function handler({ request }: { request: Request }) {
   }
 
   if (!openaiKey || !elevenKey || !openrouterKey) {
-    const missing = [!openaiKey && "OPENAI_API_KEY", !elevenKey && "ELEVENLABS_API_KEY", !openrouterKey && "OPENROUTER_API_KEY"]
-      .filter(Boolean).join(", ");
+    const missing = [
+      !openaiKey && "OPENAI_API_KEY",
+      !elevenKey && "ELEVENLABS_API_KEY",
+      !openrouterKey && "OPENROUTER_API_KEY",
+    ]
+      .filter(Boolean)
+      .join(", ");
     return Response.json({ error: `Voice not configured (${missing} missing)` }, { status: 503 });
   }
 
@@ -75,10 +80,13 @@ async function handler({ request }: { request: Request }) {
     if (!whisperRes.ok) {
       const err = await whisperRes.text();
       console.error("[interview-turn] whisper failed:", whisperRes.status, err);
-      return Response.json({ error: `Transcription failed (${whisperRes.status})` }, { status: 502 });
+      return Response.json(
+        { error: `Transcription failed (${whisperRes.status})` },
+        { status: 502 },
+      );
     }
 
-    const wd = await whisperRes.json() as { text: string };
+    const wd = (await whisperRes.json()) as { text: string };
     userText = wd.text.trim();
 
     // Nothing audible — restart listening
@@ -118,7 +126,7 @@ async function handler({ request }: { request: Request }) {
     return Response.json({ error: `AI response failed (${chatRes.status})` }, { status: 502 });
   }
 
-  const chatData = await chatRes.json() as { choices: Array<{ message: { content: string } }> };
+  const chatData = (await chatRes.json()) as { choices: Array<{ message: { content: string } }> };
   const aiText = chatData.choices[0]?.message?.content?.trim() ?? "";
 
   // Step 3: ElevenLabs TTS

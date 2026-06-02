@@ -1,4 +1,12 @@
-import { CheckCircle2, XCircle, AlertTriangle, Banknote, TrendingUp, MapPin, Star } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Banknote,
+  TrendingUp,
+  MapPin,
+  Star,
+} from "lucide-react";
 import type { EmployerBrand } from "@/lib/insights.functions";
 
 function scoreColor(s: number) {
@@ -27,13 +35,7 @@ function scoreLabel(s: number) {
   return "Significant concerns";
 }
 
-export function EmployerScoreCard({
-  id,
-  brand,
-}: {
-  id: string;
-  brand: EmployerBrand;
-}) {
+export function EmployerScoreCard({ id, brand }: { id: string; brand: EmployerBrand }) {
   return (
     <section id={id} className="editorial-card scroll-mt-20 space-y-6 p-6 md:p-8">
       {/* Section header — matches DossierSection style */}
@@ -46,7 +48,9 @@ export function EmployerScoreCard({
 
       {/* Score + rationale */}
       <div className="flex items-start gap-4">
-        <div className={`flex shrink-0 flex-col items-center rounded-xl border px-4 py-3 ${scoreBg(brand.score)}`}>
+        <div
+          className={`flex shrink-0 flex-col items-center rounded-xl border px-4 py-3 ${scoreBg(brand.score)}`}
+        >
           <span className={`text-3xl font-bold tabular-nums ${scoreColor(brand.score)}`}>
             {brand.score.toFixed(1)}
           </span>
@@ -54,7 +58,9 @@ export function EmployerScoreCard({
         </div>
         <div className="flex-1 pt-1">
           <p className={`font-semibold ${scoreColor(brand.score)}`}>{scoreLabel(brand.score)}</p>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{brand.score_rationale}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            {brand.score_rationale}
+          </p>
           <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
               className={`h-full rounded-full ${scoreBar(brand.score)}`}

@@ -3,6 +3,7 @@
 ## What's new since Bundle A
 
 **Bundle B — Voice Mock Interviewer (Phase 2b)**
+
 - `src/routes/api/gemini-token.ts` — real ephemeral-token minting against Gemini auth_tokens API. Returns `{ voice_available: false }` stub when `GEMINI_API_KEY` isn't set, so client falls back to text gracefully.
 - `public/audio-processor-worklet.js` — PCM16 mono encoder for mic input.
 - `src/hooks/use-voice-interview.ts` — full Gemini Live client. Mic capture (16kHz), audio playback (24kHz), live transcript via input/output transcription, interruption handling, MediaRecorder for session audio, mute toggle.
@@ -13,6 +14,7 @@
 - `src/routes/_authenticated/sessions.tsx` — mic icon next to voice sessions in the table.
 
 **Bundle C — Project Builder + Polish (Phase 3 + 4)**
+
 - `src/lib/projects.functions.ts` — `extractProjectBrief`, `runDeeperResearch` (with Gemini search grounding), `generateOutline` (8 deliverable templates), `draftSection` (draft / expand / tighten / rewrite_with_feedback), `updateOutline`, `exportProject`.
 - `src/routes/_authenticated/jobs/$jobId/projects/{index,new}.tsx` — per-job project list + brief intake.
 - `src/routes/_authenticated/projects/index.tsx` — top-level project list.
@@ -35,12 +37,14 @@
 The new migration is `supabase/migrations/20260509000000_bundle_b_c.sql`. Apply it via:
 
 **Option A (Supabase Dashboard)** — recommended:
+
 1. Go to your Supabase project → **SQL Editor** → New query
 2. Paste the entire contents of `20260509000000_bundle_b_c.sql`
 3. Run it
 4. Verify in Table Editor: `user_settings`, `analytics_events`, `project_artifacts` exist; `projects` has new columns
 
 **Option B (CLI)** — if you have Supabase CLI installed:
+
 ```bash
 supabase db push
 ```
@@ -50,6 +54,7 @@ supabase db push
 Get a key at [aistudio.google.com](https://aistudio.google.com) → API keys.
 
 Add it wherever the app runs:
+
 - **Local dev**: append `GEMINI_API_KEY=AIza...` to `.env`
 - **Lovable Cloud** (when credits return): Cloud panel → Environment variables → add `GEMINI_API_KEY`
 - **Vercel / Cloudflare**: dashboard env vars
@@ -73,6 +78,7 @@ Sign-up is now open to any email. Added a comment in `auth.tsx` explaining how t
 ### 5. (Optional) Schedule the retention sweep
 
 The migration created `recording_retention_days` and `transcript_retention_days` on user_settings, but the actual sweep job isn't scheduled. To wire it up later, write a Supabase scheduled edge function (or Supabase cron) that runs daily and:
+
 - Deletes audio files older than each user's `recording_retention_days`
 - Wipes/anonymizes transcripts older than `transcript_retention_days`
 
@@ -96,6 +102,7 @@ Not blocking — defaults are 90/365 days respectively.
 (In addition to the deferred Bundle A tests in the project doc.)
 
 **Bundle B**
+
 1. Without `GEMINI_API_KEY` set: open mock setup → voice toggle is disabled with explanation. Toggle stays off.
 2. With key set: voice toggle is on by default. Start mock → mic permission prompt → live page shows persona avatar pulsing while interviewer speaks.
 3. Speak — see your words appear in transcript as candidate. Pause — interviewer responds.
@@ -104,6 +111,7 @@ Not blocking — defaults are 90/365 days respectively.
 6. End → audio uploads to `user-files/{user_id}/sessions/{sessionId}.webm` → debrief generates → debrief page shows audio player at top.
 
 **Bundle C — Project Builder**
+
 1. From a job with a dossier, click Projects → empty state → New project
 2. Paste a real take-home brief → extracted brief renders on Brief tab
 3. Research tab → Run research → 5-8 grounded findings appear within 60s
@@ -114,6 +122,7 @@ Not blocking — defaults are 90/365 days respectively.
 8. Export HTML → opens in browser, Cmd+P → save as PDF
 
 **Bundle C — Polish**
+
 1. Fresh user signup → onboarding wizard appears → walk through → land on /dashboard
 2. Settings → Appearance → toggle Light → entire UI switches → persists across reload
 3. Settings → Privacy → Download my data → JSON file with everything

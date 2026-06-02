@@ -2,7 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider, DEFAULT_MODEL, FAST_MODEL, extractJsonText } from "@/lib/ai-gateway";
+import {
+  createLovableAiGatewayProvider,
+  DEFAULT_MODEL,
+  FAST_MODEL,
+  extractJsonText,
+} from "@/lib/ai-gateway";
 
 export const DELIVERABLE_TYPES = [
   "30_60_90",
@@ -61,9 +66,18 @@ const MODEL_FLASH = FAST_MODEL;
 
 const TEMPLATES: Record<DeliverableType, { title: string; prompt: string }[]> = {
   "30_60_90": [
-    { title: "First 30 Days · Learn", prompt: "What you'll listen, learn, and align on. Specific to this role + company." },
-    { title: "Days 31–60 · Own", prompt: "Where you'll start owning. Early wins to target. Stakeholder map." },
-    { title: "Days 61–90 · Deliver", prompt: "What you'll deliver by day 90. Measurable outcomes." },
+    {
+      title: "First 30 Days · Learn",
+      prompt: "What you'll listen, learn, and align on. Specific to this role + company.",
+    },
+    {
+      title: "Days 31–60 · Own",
+      prompt: "Where you'll start owning. Early wins to target. Stakeholder map.",
+    },
+    {
+      title: "Days 61–90 · Deliver",
+      prompt: "What you'll deliver by day 90. Measurable outcomes.",
+    },
     { title: "Risks & Asks", prompt: "What could go wrong, what you need from leadership." },
     { title: "Why Me", prompt: "Brief tie-back to your specific superpowers for this role." },
   ],
@@ -76,7 +90,10 @@ const TEMPLATES: Record<DeliverableType, { title: string; prompt: string }[]> = 
     { title: "Open Questions", prompt: "What still needs to be decided." },
   ],
   product_strategy: [
-    { title: "Context & Market", prompt: "The state of the market and the company's position in it." },
+    {
+      title: "Context & Market",
+      prompt: "The state of the market and the company's position in it.",
+    },
     { title: "Vision", prompt: "Where this product should be in 2-3 years." },
     { title: "Strategy & Bets", prompt: "The 3-5 bets you'd make to win." },
     { title: "Roadmap", prompt: "12-month roadmap shaped around the bets." },
@@ -92,7 +109,10 @@ const TEMPLATES: Record<DeliverableType, { title: string; prompt: string }[]> = 
     { title: "Resource Requirements", prompt: "Headcount, tooling, budget asks." },
   ],
   case_study: [
-    { title: "Problem Framing", prompt: "How you understand the problem and any clarifying assumptions." },
+    {
+      title: "Problem Framing",
+      prompt: "How you understand the problem and any clarifying assumptions.",
+    },
     { title: "Approach", prompt: "Your structured approach to solving it." },
     { title: "Analysis", prompt: "The substance — numbers, segments, user research, etc." },
     { title: "Recommendation", prompt: "What you would do and why." },
@@ -100,7 +120,10 @@ const TEMPLATES: Record<DeliverableType, { title: string; prompt: string }[]> = 
     { title: "Risks & Mitigations", prompt: "What could go wrong and how you'd respond." },
   ],
   sales_pitch: [
-    { title: "Target Account & Pain", prompt: "Who this is for and the specific pain you're solving." },
+    {
+      title: "Target Account & Pain",
+      prompt: "Who this is for and the specific pain you're solving.",
+    },
     { title: "Solution", prompt: "How your offering maps to that pain." },
     { title: "Differentiation", prompt: "Why you, not competitor X." },
     { title: "Proof", prompt: "Customer outcomes, references, hard numbers." },
@@ -110,14 +133,18 @@ const TEMPLATES: Record<DeliverableType, { title: string; prompt: string }[]> = 
   eng_take_home: [
     { title: "Problem Restatement", prompt: "Restate the problem to confirm understanding." },
     { title: "Approach", prompt: "High-level approach and key decisions." },
-    { title: "Implementation Notes", prompt: "Highlights of the implementation, key data structures, etc." },
+    {
+      title: "Implementation Notes",
+      prompt: "Highlights of the implementation, key data structures, etc.",
+    },
     { title: "Tradeoffs", prompt: "What you traded off and why (time, scope, complexity)." },
     { title: "Testing Strategy", prompt: "How you tested and what's covered." },
-    { title: "Production Considerations", prompt: "What you'd add for prod (observability, scaling, etc)." },
+    {
+      title: "Production Considerations",
+      prompt: "What you'd add for prod (observability, scaling, etc).",
+    },
   ],
-  custom: [
-    { title: "Section 1", prompt: "AI will customize sections based on your brief." },
-  ],
+  custom: [{ title: "Section 1", prompt: "AI will customize sections based on your brief." }],
 };
 
 export const extractProjectBrief = createServerFn({ method: "POST" })
@@ -142,14 +169,17 @@ export const extractProjectBrief = createServerFn({ method: "POST" })
 
     const { text: briefText } = await generateText({
       model,
-      system:
-        `You are a take-home assignment parser. Extract the deliverable type (best fit from the enum), explicit requirements, deadline if any, intended audience, suggested format, and the key questions the brief is really asking. Return null when unknown.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${briefJsonShape}`,
+      system: `You are a take-home assignment parser. Extract the deliverable type (best fit from the enum), explicit requirements, deadline if any, intended audience, suggested format, and the key questions the brief is really asking. Return null when unknown.\n\nReturn ONLY valid JSON (no markdown fences, no extra text) matching this exact structure:\n${briefJsonShape}`,
       prompt: `Parse this assignment brief.\n\n${data.raw_brief}`,
     });
     const parsed = ExtractedBriefSchema.parse(JSON.parse(extractJsonText(briefText)));
 
     // Default title from job + deliverable type
-    const { data: job } = await supabase.from("jobs").select("title").eq("id", data.job_id).maybeSingle();
+    const { data: job } = await supabase
+      .from("jobs")
+      .select("title")
+      .eq("id", data.job_id)
+      .maybeSingle();
     const title = `${job?.title ?? "Project"} — ${DELIVERABLE_LABELS[parsed.deliverable_type]}`;
 
     const { data: row, error } = await supabase
@@ -172,9 +202,7 @@ export const extractProjectBrief = createServerFn({ method: "POST" })
 
 export const listProjectsForJob = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { job_id: string }) =>
-    z.object({ job_id: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: { job_id: string }) => z.object({ job_id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { data: rows, error } = await supabase
@@ -200,20 +228,23 @@ export const listAllProjects = createServerFn({ method: "GET" })
     const jobs =
       jobIds.length === 0
         ? []
-        : (await supabase.from("jobs").select("id, title, company_id").in("id", jobIds)).data ?? [];
+        : ((await supabase.from("jobs").select("id, title, company_id").in("id", jobIds)).data ??
+          []);
     const jobMap = new Map(jobs.map((j) => [j.id, j]));
-    const companyIds = Array.from(new Set(jobs.map((j) => j.company_id).filter(Boolean))) as string[];
+    const companyIds = Array.from(
+      new Set(jobs.map((j) => j.company_id).filter(Boolean)),
+    ) as string[];
     const companies =
       companyIds.length === 0
         ? []
-        : (await supabase.from("companies").select("id, name").in("id", companyIds)).data ?? [];
+        : ((await supabase.from("companies").select("id, name").in("id", companyIds)).data ?? []);
     const companyMap = new Map(companies.map((c) => [c.id, c]));
 
     return (rows ?? []).map((p) => ({
       ...p,
       job_title: jobMap.get(p.job_id)?.title ?? null,
       company_name: jobMap.get(p.job_id)?.company_id
-        ? companyMap.get(jobMap.get(p.job_id)!.company_id!)?.name ?? null
+        ? (companyMap.get(jobMap.get(p.job_id)!.company_id!)?.name ?? null)
         : null,
     }));
   });
@@ -369,9 +400,7 @@ export const generateOutline = createServerFn({ method: "POST" })
 export const updatePersonalRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { project_id: string; personal_request: string }) =>
-    z
-      .object({ project_id: z.string().uuid(), personal_request: z.string().max(2000) })
-      .parse(data),
+    z.object({ project_id: z.string().uuid(), personal_request: z.string().max(2000) }).parse(data),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -414,20 +443,21 @@ export const updateOutline = createServerFn({ method: "POST" })
 
 export const draftSection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: {
-    project_id: string;
-    section_id: string;
-    action: "draft" | "expand" | "tighten" | "rewrite_with_feedback";
-    feedback?: string;
-  }) =>
-    z
-      .object({
-        project_id: z.string().uuid(),
-        section_id: z.string(),
-        action: z.enum(["draft", "expand", "tighten", "rewrite_with_feedback"]),
-        feedback: z.string().optional(),
-      })
-      .parse(data),
+  .inputValidator(
+    (data: {
+      project_id: string;
+      section_id: string;
+      action: "draft" | "expand" | "tighten" | "rewrite_with_feedback";
+      feedback?: string;
+    }) =>
+      z
+        .object({
+          project_id: z.string().uuid(),
+          section_id: z.string(),
+          action: z.enum(["draft", "expand", "tighten", "rewrite_with_feedback"]),
+          feedback: z.string().optional(),
+        })
+        .parse(data),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -467,10 +497,12 @@ export const draftSection = createServerFn({ method: "POST" })
     let actionInstruction: string;
     switch (data.action) {
       case "expand":
-        actionInstruction = "Expand the existing content with more depth, specificity, and examples. Preserve voice.";
+        actionInstruction =
+          "Expand the existing content with more depth, specificity, and examples. Preserve voice.";
         break;
       case "tighten":
-        actionInstruction = "Tighten the existing content. Cut filler. Sharpen claims. Keep substance.";
+        actionInstruction =
+          "Tighten the existing content. Cut filler. Sharpen claims. Keep substance.";
         break;
       case "rewrite_with_feedback":
         actionInstruction = `Rewrite the section incorporating this feedback: ${data.feedback ?? ""}`;

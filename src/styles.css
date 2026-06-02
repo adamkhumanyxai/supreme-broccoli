@@ -47,13 +47,13 @@
 /* Dark editorial — Linear / Vercel / Stripe Dashboard */
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.145 0.004 286);    /* #09090b */
+  --background: oklch(0.145 0.004 286); /* #09090b */
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.181 0.004 286);          /* #18181b */
+  --card: oklch(0.181 0.004 286); /* #18181b */
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.181 0.004 286);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.685 0.151 55);        /* deep amber #d97706 */
+  --primary: oklch(0.685 0.151 55); /* deep amber #d97706 */
   --primary-foreground: oklch(0.145 0.004 286);
   --secondary: oklch(0.225 0.005 286);
   --secondary-foreground: oklch(0.985 0 0);
@@ -63,7 +63,7 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.6 0.21 27);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.245 0.005 286);        /* #27272a */
+  --border: oklch(0.245 0.005 286); /* #27272a */
   --border-strong: oklch(0.305 0.005 286); /* #3f3f46 */
   --input: oklch(0.225 0.005 286);
   --ring: oklch(0.685 0.151 55);
@@ -110,9 +110,9 @@
 
 /* Light editorial — warm neutral, same accent */
 [data-theme="light"] {
-  --background: oklch(0.985 0.002 80);     /* #fafaf9 */
-  --foreground: oklch(0.18 0.005 286);     /* #1c1917 */
-  --card: oklch(1 0 0);                    /* #ffffff */
+  --background: oklch(0.985 0.002 80); /* #fafaf9 */
+  --foreground: oklch(0.18 0.005 286); /* #1c1917 */
+  --card: oklch(1 0 0); /* #ffffff */
   --card-foreground: oklch(0.18 0.005 286);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.005 286);
@@ -126,8 +126,8 @@
   --accent-foreground: oklch(0.18 0.005 286);
   --destructive: oklch(0.55 0.21 27);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.91 0.005 80);          /* #e7e5e4 */
-  --border-strong: oklch(0.83 0.005 80);   /* #d6d3d1 */
+  --border: oklch(0.91 0.005 80); /* #e7e5e4 */
+  --border-strong: oklch(0.83 0.005 80); /* #d6d3d1 */
   --input: oklch(0.94 0.005 80);
   --ring: oklch(0.685 0.151 55);
   --sidebar: oklch(0.97 0.002 80);
@@ -172,7 +172,9 @@
     background-color: var(--color-card);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    transition: border-color 200ms ease, box-shadow 200ms ease;
+    transition:
+      border-color 200ms ease,
+      box-shadow 200ms ease;
   }
   .editorial-card:hover {
     border-color: var(--color-border-strong);
