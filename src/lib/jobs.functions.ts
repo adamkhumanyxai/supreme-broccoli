@@ -6,6 +6,57 @@ import { createLovableAiGatewayProvider, FAST_MODEL, extractJsonText } from "@/l
 
 const URL_RE = /^https?:\/\/\S+$/i;
 
+// Block server-side fetches to private, loopback, link-local and cloud-metadata
+// addresses so the job-URL importer can't be used for SSRF. (Does not defend
+// against DNS rebinding — a public hostname resolving to a private IP — which
+// would require resolving + pinning the address at fetch time.)
+function isPrivateOrReservedHost(host: string): boolean {
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return true;
+  }
+  // IPv6 loopback / unspecified / ULA (fc00::/7) / link-local (fe80::/10)
+  if (host === "::1" || host === "::") return true;
+  if (/^f[cd][0-9a-f]{2}:/i.test(host)) return true;
+  if (/^fe[89ab][0-9a-f]:/i.test(host)) return true;
+  // IPv4 literal (also catches IPv4-mapped IPv6 like ::ffff:127.0.0.1)
+  const v4 = host.match(/(?:^|:)(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const a = parseInt(v4[1], 10);
+    const b = parseInt(v4[2], 10);
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true; // link-local incl. 169.254.169.254 metadata
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+    if (a >= 224) return true; // multicast / reserved
+  }
+  return false;
+}
+
+function assertSafePublicUrl(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error("Invalid URL.");
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("Only http(s) URLs are supported.");
+  }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (isPrivateOrReservedHost(host)) {
+    throw new Error(
+      "That URL points to a private or internal address. Please paste the job description text instead.",
+    );
+  }
+  return url.toString();
+}
+
 function stripHtml(html: string): string {
   // Pre-strip noisy blocks before main extraction
   const cleaned = html
@@ -53,7 +104,7 @@ export const extractJob = createServerFn({ method: "POST" })
     let text = data.input;
     let sourceUrl: string | null = null;
     if (isUrl) {
-      sourceUrl = data.input.trim();
+      sourceUrl = assertSafePublicUrl(data.input.trim());
       try {
         const res = await fetch(sourceUrl, {
           headers: {
@@ -79,7 +130,6 @@ export const extractJob = createServerFn({ method: "POST" })
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
-    console.log("[extractJob] apiKey present:", !!apiKey, "len:", apiKey?.length, "model:", FAST_MODEL);
     if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
     const gateway = createLovableAiGatewayProvider(apiKey);
     const model = gateway(FAST_MODEL);
@@ -101,9 +151,7 @@ export const extractJob = createServerFn({ method: "POST" })
       throw e;
     }
 
-    console.log("[extractJob] raw response (first 300):", rawText.slice(0, 300));
     const parsed = ParsedJobSchema.parse(JSON.parse(extractJsonText(rawText)));
-    console.log("[extractJob] parsed ok, company:", parsed.company_name, "role:", parsed.role_title);
 
     return { parsed: { ...parsed, source_url: parsed.source_url ?? sourceUrl } };
   });
