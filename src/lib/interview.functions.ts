@@ -69,6 +69,19 @@ function bullets(arr: string[] | null | undefined): string {
   return arr.map((s) => `- ${s}`).join("\n");
 }
 
+function pacingGuidance(minutes: number): string {
+  if (minutes <= 10) {
+    return `PACING — THIS IS A QUICK ${minutes}-MINUTE INTERVIEW
+- Open with ONE sentence: your name and what you'll focus on, then go straight into the first question.
+- Ask only 2–3 focused, high-signal questions total — pick what matters most for this role.
+- At most one short follow-up per question. Don't deep-probe; keep the momentum.
+- Wrap up right after your final question: a brief thanks and invite one quick question from them.`;
+  }
+  return `PACING
+- Open with a brief warm intro, then work through your questions at a natural, unhurried pace.
+- In the final ~5 minutes, begin wrapping up: invite their questions about the role or company.`;
+}
+
 export const startInterview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -145,6 +158,7 @@ async function buildSystemPrompt(
   const dossier = (insight?.dossier ?? {}) as Record<string, string>;
   const reqsArr = (job as { requirements?: string[] } | null)?.requirements ?? [];
   const respsArr = (job as { responsibilities?: string[] } | null)?.responsibilities ?? [];
+  const targetMinutes = session.target_duration_minutes ?? 30;
 
   return `You are conducting a ${session.interview_type} interview for a ${job?.title ?? "role"} position at ${company?.name ?? "the company"}.
 
@@ -174,7 +188,8 @@ Difficulty: ${session.difficulty}
   - warmup: open-ended, kind, give space
   - standard: realistic professional rigor
   - pressure: probe inconsistencies, follow up hard, time-pressure feel
-Target duration: ${session.target_duration_minutes} minutes
+Target duration: ${targetMinutes} minutes
+${pacingGuidance(targetMinutes)}
 
 INTERVIEWING STYLE
 - Ask ONE question per turn, never bundle multiple
@@ -185,10 +200,10 @@ INTERVIEWING STYLE
 - Periodically reference their unique background — make them feel seen, not interrogated
 
 OPENING (only on the first turn)
-Brief warm intro: introduce yourself by name (invent one fitting the persona), say what you'll be focused on, then ask the first question.
+Introduce yourself by name (invent one fitting the persona), say what you'll be focused on, then ask the first question. Keep it as brief as the pacing above calls for.
 
-CLOSING (final ~5 min of target_duration)
-Wrap by inviting their questions about the role/company. Don't generate a debrief — that's separate.
+CLOSING
+Toward the end (see pacing above), wrap by inviting their questions about the role/company. Don't generate a debrief — that's separate.
 
 Output your turn as plain text. No JSON, no markdown headers. Speak naturally.`;
 }

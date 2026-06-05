@@ -29,7 +29,7 @@ const DIFFICULTIES: { value: Difficulty; label: string; blurb: string }[] = [
   { value: "pressure", label: "Pressure", blurb: "Probes hard." },
 ];
 
-const DURATIONS = [15, 30, 45, 60];
+const DURATIONS = [5, 15, 30, 45, 60];
 
 function MockNew() {
   const { jobId } = Route.useParams();
